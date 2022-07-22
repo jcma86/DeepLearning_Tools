@@ -1,5 +1,0 @@
-/Users/jose/Documents/projects/deeplearning/src/build/CMakeFiles/cmNeuralNetwork.dir
-/Users/jose/Documents/projects/deeplearning/src/build/CMakeFiles/cmActivationFunction.dir
-/Users/jose/Documents/projects/deeplearning/src/build/CMakeFiles/NeuralNetworkTest.dir
-/Users/jose/Documents/projects/deeplearning/src/build/CMakeFiles/edit_cache.dir
-/Users/jose/Documents/projects/deeplearning/src/build/CMakeFiles/rebuild_cache.dir

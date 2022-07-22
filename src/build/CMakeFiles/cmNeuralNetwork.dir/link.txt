@@ -1,2 +1,0 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc libcmNeuralNetwork.a CMakeFiles/cmNeuralNetwork.dir/libs/neural_networks/cmNeuralNetwork.cpp.o
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib libcmNeuralNetwork.a
