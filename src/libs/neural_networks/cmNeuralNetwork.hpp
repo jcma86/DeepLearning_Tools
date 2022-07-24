@@ -7,6 +7,12 @@ using namespace std;
 
 namespace cmNeuralNetwork
 {
+    class NNHelper
+    {
+    public:
+        static double *randomWeights(size_t n, double *output, double min = -1.0, double max = 1.0);
+    };
+
     class Neuron
     {
     private:
@@ -75,6 +81,7 @@ namespace cmNeuralNetwork
 
         void printOutput();
 
+        size_t getOutputSize();
         double *getOtput();
         double *compute();
     };

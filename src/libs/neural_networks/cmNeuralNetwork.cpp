@@ -1,6 +1,17 @@
 #include "cmNeuralNetwork.hpp"
+#include <random>
 
 using namespace cmNeuralNetwork;
+
+double *NNHelper::randomWeights(size_t n, double *output, double min, double max)
+{
+    uniform_real_distribution<double> unif(min, max);
+    random_device rd; // Will be used to obtain a seed for the random number engine
+    mt19937 gen(rd());
+
+    for (size_t i = 0; i < n; i += 1)
+        output[i] = unif(gen);
+}
 
 bool Neuron::isReady()
 {
@@ -159,8 +170,9 @@ void Layer::setWeights(size_t n, double *weights)
 
     _nW = n;
     _weights = weights;
+    size_t wpn = _nI + _nE + 1;
     for (size_t i = 0; i < _n; i += 1)
-        _neuron[i].setWeights(_nW, &_weights[i * (_nW)]);
+        _neuron[i].setWeights(wpn, &_weights[i * wpn]);
 }
 
 void Layer::setExtraInputs(size_t nExtraInputs, double *extraInputs)
@@ -182,7 +194,7 @@ size_t Layer::weightsNeeded()
     size_t wn = 0;
     for (size_t i = 0; i < _n; i += 1)
         wn += _neuron[i].weightsNeeded();
-        
+
     return wn;
 }
 
@@ -197,5 +209,15 @@ double *Layer::compute()
     for (size_t i = 0; i < _n; i += 1)
         _output[i] = _neuron[i].compute();
 
+    return _output;
+}
+
+size_t Layer::getOutputSize()
+{
+    return _n;
+}
+
+double *Layer::getOtput()
+{
     return _output;
 }
