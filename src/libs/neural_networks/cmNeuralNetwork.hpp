@@ -12,7 +12,10 @@ namespace cmNeuralNetwork
     private:
         size_t _nI = 0;
         size_t _nW = 0;
+        size_t _nE = 0;
+        bool _isActive = true;
         double *_inputs = NULL;
+        double *_extraInputs = NULL;
         double *_weights = NULL;
         double _output = 0;
 
@@ -24,8 +27,12 @@ namespace cmNeuralNetwork
         bool isReady();
 
         void setInputs(size_t n, double *inputs);                          // Size and Pointer to the first element of inputs array.
+        void setExtraInputs(size_t n, double *inputs);                     // Size and Pointer to the first element of extra inputs array.
         void setWeights(size_t n, double *weights);                        // Size and Pointer to the first element of weights array.
         void setActivationFunction(double (*_activationFunction)(double)); // Pointer to activation function.
+        void setIsActive(bool isActive = true);
+
+        size_t weightsNeeded();
 
         void printInputs();
         void printWights();
@@ -40,6 +47,7 @@ namespace cmNeuralNetwork
     {
     private:
         size_t _n = 0;
+        size_t _nE = 0;
         size_t _nI = 0;
         size_t _nW = 0;
 
@@ -47,6 +55,7 @@ namespace cmNeuralNetwork
         double *_output = NULL;
 
         double *_inputs = NULL;
+        double *_extraInputs = NULL;
         double *_weights = NULL;
 
         void releaseMemory();
@@ -57,7 +66,12 @@ namespace cmNeuralNetwork
         bool isReady();
 
         void createLayer(size_t numOfNeurons);
-        void initNeurons(size_t n, double *inputs, double *weights, double (*activationFunction)(double) = NULL);
+        void setInputs(size_t n, double *inputs);
+        void setWeights(size_t n, double *weights);
+        void setActivationFunction(double (*activationFunction)(double));
+        void setExtraInputs(size_t nExtraInputs, double *extraInputs);
+
+        size_t weightsNeeded();
 
         void printOutput();
 
