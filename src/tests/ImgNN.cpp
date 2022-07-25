@@ -13,10 +13,10 @@ using namespace cmNeuralNetwork;
 
 int main()
 {
-    int nLayers = 25;
+    int nLayers = 30;
     Layer *layer = new Layer[nLayers];
 
-    double *pixelsD;
+    long double *pixelsD;
     double *pixelsPtr;
 
     int c = 240;
@@ -31,15 +31,15 @@ int main()
     img.convertTo(imgDouble, CV_64FC1);
     pixelsPtr = (double *)imgDouble.data;
 
-    pixelsD = new double[c * r];
+    pixelsD = new long double[c * r];
     for (int i = 0; i < c * r; i += 1)
         pixelsD[i] = pixelsPtr[i] / 255.0;
 
     printf("Creating layers.\n");
-    layer[0].createLayer(200);
+    layer[0].createLayer(0, 2000);
     for (int i = 1; i < nLayers - 1; i += 1)
-        layer[i].createLayer(100);
-    layer[nLayers - 1].createLayer(c * r);
+        layer[i].createLayer(i, 500);
+    layer[nLayers - 1].createLayer(nLayers - 1, c * r);
 
     printf("Setting inputs.\n");
     layer[0].setInputs(c * r, pixelsD);
@@ -50,7 +50,7 @@ int main()
 
     printf("Setting activation functions.\n");
     for (int i = 0; i < nLayers - 1; i += 1)
-        layer[i].setActivationFunction(fxTanh);
+        layer[i].setActivationFunction(fxLeakyReLU);
     layer[nLayers - 1].setActivationFunction(fxSigmoid);
 
     size_t nw = 0;
@@ -59,7 +59,7 @@ int main()
 
     printf("Generating weights (%ld).\n", nw);
     double *w = new double[nw];
-    NNHelper::randomWeights(nw, w);
+    NNHelper::randomWeights(nw, w, -0.1, 0.1);
 
     size_t firstW = 0;
     for (int i = 0; i < nLayers; i += 1)
@@ -70,27 +70,26 @@ int main()
     }
 
     printf("\nComputing\n");
-    for (int i = 0; i < nLayers; i += 1)
+    for (int i = 0; i < nLayers - 1; i += 1)
         layer[i].compute();
+    layer[nLayers - 1].compute();
 
-    double *outNN = layer[nLayers - 1].getOtput();
+    long double *outNN = layer[nLayers - 1].getOtput();
+    uint8_t *finalValues = new uint8_t[c * r];
     for (int i = 0; i < (r * c); i += 1)
-    {
-        outNN[i] *= 255.0;
-        printf("%lf\n", outNN[i]);
-    }
+        finalValues[i] = (uint8_t)(outNN[i] * 255.0);
 
-    out = Mat(r, c, CV_64FC1, outNN);
-    out.convertTo(finalImg, CV_8UC1);
+    out = Mat(r, c, CV_8UC1, finalValues);
 
     imshow("In", img);
-    imshow("Out", finalImg);
+    imshow("Out", out);
 
     waitKey(0);
 
     delete[] pixelsD;
     delete[] w;
     delete[] layer;
+    delete[] finalValues;
 
     return 0;
 }

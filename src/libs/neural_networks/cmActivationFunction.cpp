@@ -4,57 +4,57 @@
 
 using namespace std;
 
-double cmNeuralNetwork::fxBinaryStep(double input)
+long double cmNeuralNetwork::fxBinaryStep(long double input)
 {
     return input < 0.0 ? 0.0 : 1.0;
 }
 
-double cmNeuralNetwork::fxIdentity(double input)
+long double cmNeuralNetwork::fxIdentity(long double input)
 {
     return input;
 }
 
-double cmNeuralNetwork::fxSigmoid(double input)
+long double cmNeuralNetwork::fxSigmoid(long double input)
 {
     return 1.0 / (1.0 + exp(-input));
 }
 
-double cmNeuralNetwork::fxTanh(double input)
+long double cmNeuralNetwork::fxTanh(long double input)
 {
     return tanh(input);
 }
 
-double cmNeuralNetwork::fxReLU(double input)
+long double cmNeuralNetwork::fxReLU(long double input)
 {
-    return max(0.0, input);
+    return max((long double)0.0, input);
 }
 
-double cmNeuralNetwork::fxLeakyReLU(double input)
+long double cmNeuralNetwork::fxLeakyReLU(long double input)
 {
     return max(0.1 * input, input);
 }
 
-double cmNeuralNetwork::fxELU(double input)
+long double cmNeuralNetwork::fxELU(long double input)
 {
-    double alpha = 0.1;
+    long double alpha = 0.1;
     return input >= 0.0 ? input : alpha * (exp(input) - 1.0);
 }
 
-double cmNeuralNetwork::fxGELU(double input)
+long double cmNeuralNetwork::fxGELU(long double input)
 {
     return (0.5 * input) * (1.0 + tanh(sqrt(2.0 / M_PI) * (input + (0.044715 * pow(input, 3)))));
 }
 
-double cmNeuralNetwork::fxSELU(double input)
+long double cmNeuralNetwork::fxSELU(long double input)
 {
-    double alpha = 1.6732632423543772848170429916717;
-    double lambda = 1.0507009873554804934193349852946;
+    long double alpha = 1.6732632423543772848170429916717;
+    long double lambda = 1.0507009873554804934193349852946;
 
-    double out = input >= 0.0 ? input : alpha * (exp(input) - 1.0);
+    long double out = input >= 0.0 ? input : alpha * (exp(input) - 1.0);
     return lambda * out;
 }
 
-double cmNeuralNetwork::fxSwish(double input)
+long double cmNeuralNetwork::fxSwish(long double input)
 {
     return input / (1.0 + exp(-input));
 }

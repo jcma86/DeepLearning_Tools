@@ -2,16 +2,16 @@
 #define __CM_LIBS_DL_NEURAL_NETWORK_ACTIVATION_FX__
 
 namespace cmNeuralNetwork {
-    double fxBinaryStep(double input);
-    double fxIdentity(double input);
-    double fxSigmoid(double input);
-    double fxTanh(double input);
-    double fxReLU(double input);
-    double fxLeakyReLU(double input);
-    double fxELU(double input);
-    double fxGELU(double input);
-    double fxSELU(double input);
-    double fxSwish(double input);
+    long double fxBinaryStep(long double input);
+    long double fxIdentity(long double input);
+    long double fxSigmoid(long double input);
+    long double fxTanh(long double input);
+    long double fxReLU(long double input);
+    long double fxLeakyReLU(long double input);
+    long double fxELU(long double input);
+    long double fxGELU(long double input);
+    long double fxSELU(long double input);
+    long double fxSwish(long double input);
 }
 
 #endif
