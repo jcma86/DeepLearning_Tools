@@ -13,10 +13,10 @@ using namespace cmNeuralNetwork;
 
 int main()
 {
-    int nLayers = 30;
+    int nLayers = 50;
     Layer *layer = new Layer[nLayers];
 
-    long double *pixelsD;
+    double *pixelsD;
     double *pixelsPtr;
 
     int c = 240;
@@ -31,7 +31,7 @@ int main()
     img.convertTo(imgDouble, CV_64FC1);
     pixelsPtr = (double *)imgDouble.data;
 
-    pixelsD = new long double[c * r];
+    pixelsD = new double[c * r];
     for (int i = 0; i < c * r; i += 1)
         pixelsD[i] = pixelsPtr[i] / 255.0;
 
@@ -59,7 +59,7 @@ int main()
 
     printf("Generating weights (%ld).\n", nw);
     double *w = new double[nw];
-    NNHelper::randomWeights(nw, w, -0.1, 0.1);
+    NNHelper::randomWeights(nw, w);
 
     size_t firstW = 0;
     for (int i = 0; i < nLayers; i += 1)
@@ -71,13 +71,16 @@ int main()
 
     printf("\nComputing\n");
     for (int i = 0; i < nLayers - 1; i += 1)
-        layer[i].compute();
-    layer[nLayers - 1].compute();
+        layer[i].compute(MIN_MAX);
+    layer[nLayers - 1].compute(MIN_MAX, false);
 
-    long double *outNN = layer[nLayers - 1].getOtput();
+    double *outNN = layer[nLayers - 1].getOtput();
     uint8_t *finalValues = new uint8_t[c * r];
     for (int i = 0; i < (r * c); i += 1)
+    {
         finalValues[i] = (uint8_t)(outNN[i] * 255.0);
+        printf("%d\n", finalValues[i]);
+    }
 
     out = Mat(r, c, CV_8UC1, finalValues);
 

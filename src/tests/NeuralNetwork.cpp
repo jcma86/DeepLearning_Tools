@@ -10,8 +10,8 @@ int main()
     Neuron aNeuron;
     Layer aLayer;
 
-    long double in[2] = {1.1, 2.2};
-    long double ein[2] = {1.2, 2.3};
+    double in[2] = {1.1, 2.2};
+    double ein[2] = {1.2, 2.3};
     double w[5] = {8.4, 6.3, 4.2, 2.1, -1.0};
 
     aNeuron.setInputs(2, in);

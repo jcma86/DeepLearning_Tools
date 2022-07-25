@@ -7,10 +7,17 @@ using namespace std;
 
 namespace cmNeuralNetwork
 {
+    typedef enum
+    {
+        NONE,
+        MIN_MAX,
+        Z_SCORE
+    } Normalization;
+
     class NNHelper
     {
     public:
-        static void randomWeights(size_t n, double *output, double min = -0.05, double max = 0.05);
+        static void randomWeights(size_t n, double *output, double min = -1.0, double max = 1.0);
     };
 
     class Neuron
@@ -21,12 +28,12 @@ namespace cmNeuralNetwork
         size_t _nW = 0;
         size_t _nE = 0;
         bool _isActive = true;
-        long double *_inputs = NULL;
-        long double *_extraInputs = NULL;
-        long double _output = 0;
+        double *_inputs = NULL;
+        double *_extraInputs = NULL;
+        double _output = 0;
         double *_weights = NULL;
 
-        long double (*_activationFunction)(long double) = NULL;
+        double (*_activationFunction)(double) = NULL;
 
     public:
         Neuron(){};
@@ -34,10 +41,10 @@ namespace cmNeuralNetwork
         bool isReady();
 
         void setID(size_t layerIndex, size_t neuronIndex);
-        void setInputs(size_t n, long double *inputs);                               // Size and Pointer to the first element of inputs array.
-        void setExtraInputs(size_t n, long double *inputs);                          // Size and Pointer to the first element of extra inputs array.
+        void setInputs(size_t n, double *inputs);                               // Size and Pointer to the first element of inputs array.
+        void setExtraInputs(size_t n, double *inputs);                          // Size and Pointer to the first element of extra inputs array.
         void setWeights(size_t n, double *weights);                                  // Size and Pointer to the first element of weights array.
-        void setActivationFunction(long double (*_activationFunction)(long double)); // Pointer to activation function.
+        void setActivationFunction(double (*_activationFunction)(double)); // Pointer to activation function.
         void setIsActive(bool isActive = true);
 
         size_t weightsNeeded();
@@ -48,7 +55,7 @@ namespace cmNeuralNetwork
         void printWeightSize();
         void printOutput();
 
-        long double compute(bool softmax = false);
+        double compute(bool softmax = false);
     };
 
     class Layer
@@ -61,10 +68,10 @@ namespace cmNeuralNetwork
         size_t _nW = 0;
 
         Neuron *_neuron = NULL;
-        long double *_output = NULL;
+        double *_output = NULL;
 
-        long double *_inputs = NULL;
-        long double *_extraInputs = NULL;
+        double *_inputs = NULL;
+        double *_extraInputs = NULL;
         double *_weights = NULL;
 
         void releaseMemory();
@@ -75,18 +82,18 @@ namespace cmNeuralNetwork
         bool isReady();
 
         void createLayer(size_t layerIndex, size_t numOfNeurons);
-        void setInputs(size_t n, long double *inputs);
+        void setInputs(size_t n, double *inputs);
         void setWeights(size_t n, double *weights);
-        void setActivationFunction(long double (*activationFunction)(long double));
-        void setExtraInputs(size_t nExtraInputs, long double *extraInputs);
+        void setActivationFunction(double (*activationFunction)(double));
+        void setExtraInputs(size_t nExtraInputs, double *extraInputs);
 
         size_t weightsNeeded();
 
         void printOutput();
 
         size_t getOutputSize();
-        long double *getOtput();
-        long double *compute(bool softMax = false);
+        double *getOtput();
+        double *compute(Normalization norm = NONE, bool softMax = false);
     };
 };
 

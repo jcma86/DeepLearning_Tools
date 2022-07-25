@@ -13,7 +13,8 @@ void NNHelper::randomWeights(size_t n, double *output, double min, double max)
         output[i] = unif(gen);
 }
 
-void Neuron::setID(size_t layerIndex, size_t neuronIndex){
+void Neuron::setID(size_t layerIndex, size_t neuronIndex)
+{
     sprintf(_id, "l:%ld_n:%ld", layerIndex, neuronIndex);
 }
 
@@ -27,7 +28,7 @@ bool Neuron::isReady()
     return ready;
 }
 
-void Neuron::setInputs(size_t n, long double *inputs)
+void Neuron::setInputs(size_t n, double *inputs)
 {
     _nI = n;
     _inputs = inputs;
@@ -39,13 +40,13 @@ void Neuron::setWeights(size_t n, double *weights)
     _weights = weights;
 }
 
-void Neuron::setExtraInputs(size_t n, long double *inputs)
+void Neuron::setExtraInputs(size_t n, double *inputs)
 {
     _nE = n;
     _extraInputs = inputs;
 }
 
-void Neuron::setActivationFunction(long double (*activationFunction)(long double))
+void Neuron::setActivationFunction(double (*activationFunction)(double))
 {
     _activationFunction = activationFunction;
 }
@@ -69,9 +70,9 @@ void Neuron::printInputs()
     }
 
     for (size_t i = 0; i < _nI; i += 1)
-        printf("%ld:%.15Lf\n", i, _inputs[i]);
+        printf("%ld:%.15lf\n", i, _inputs[i]);
     for (size_t i = 0; i < _nE; i += 1)
-        printf("extra-%ld:%.15Lf\n", i, _extraInputs[i]);
+        printf("extra-%ld:%.15lf\n", i, _extraInputs[i]);
 }
 
 void Neuron::printWights()
@@ -99,10 +100,10 @@ void Neuron::printWeightSize()
 void Neuron::printOutput()
 {
     isReady();
-    printf("%.15Lf\n", _output);
+    printf("%.15lf\n", _output);
 }
 
-long double Neuron::compute(bool softmax)
+double Neuron::compute(bool softmax)
 {
     if (!isReady() || !_isActive)
         return 0.0;
@@ -151,7 +152,7 @@ void Layer::createLayer(size_t layerIndex, size_t numOfNeurons)
 
     _n = numOfNeurons;
     _neuron = new Neuron[numOfNeurons];
-    _output = new long double[numOfNeurons];
+    _output = new double[numOfNeurons];
 
     if (!_neuron || !_output)
     {
@@ -165,7 +166,7 @@ void Layer::createLayer(size_t layerIndex, size_t numOfNeurons)
         _neuron[i].setID(layerIndex, i);
 }
 
-void Layer::setInputs(size_t n, long double *inputs)
+void Layer::setInputs(size_t n, double *inputs)
 {
     if (n == 0)
         printf("[WARNING] Number of inputs equal to 0.\n");
@@ -188,7 +189,7 @@ void Layer::setWeights(size_t n, double *weights)
         _neuron[i].setWeights(wpn, &_weights[i * wpn]);
 }
 
-void Layer::setExtraInputs(size_t nExtraInputs, long double *extraInputs)
+void Layer::setExtraInputs(size_t nExtraInputs, double *extraInputs)
 {
     _nE = nExtraInputs;
     _extraInputs = extraInputs;
@@ -196,7 +197,7 @@ void Layer::setExtraInputs(size_t nExtraInputs, long double *extraInputs)
         _neuron[i].setExtraInputs(_nE, _extraInputs);
 }
 
-void Layer::setActivationFunction(long double (*activationFunction)(long double))
+void Layer::setActivationFunction(double (*activationFunction)(double))
 {
     for (size_t i = 0; i < _n; i += 1)
         _neuron[i].setActivationFunction(activationFunction);
@@ -214,16 +215,28 @@ size_t Layer::weightsNeeded()
 void Layer::printOutput()
 {
     for (size_t i = 0; i < _n; i += 1)
-        printf("%ld:%.15Lf\n", i, _output[i]);
+        printf("%ld:%.15lf\n", i, _output[i]);
 }
 
-long double *Layer::compute(bool softMax)
+double *Layer::compute(Normalization norm, bool softMax)
 {
-    long double softMaxAdd = 0.0;
+    double softMaxAdd = 0.0;
+    double min = MAXFLOAT;
+    double max = -MAXFLOAT;
+
     for (size_t i = 0; i < _n; i += 1)
     {
         _output[i] = _neuron[i].compute(softMax);
+        min = _output[i] < min ? _output[i] : min;
+        max = _output[i] > max ? _output[i] : max;
         softMaxAdd += _output[i];
+    }
+
+    if (norm == MIN_MAX)
+    {
+        double diff = max - min;
+        for (size_t i = 0; i < _n; i += 1)
+            _output[i] = (_output[i] - min) / diff;
     }
 
     if (softMax)
@@ -238,7 +251,7 @@ size_t Layer::getOutputSize()
     return _n;
 }
 
-long double *Layer::getOtput()
+double *Layer::getOtput()
 {
     return _output;
 }
