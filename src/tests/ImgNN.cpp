@@ -51,7 +51,7 @@ int main()
     printf("Setting activation functions.\n");
     for (int i = 0; i < nLayers - 1; i += 1)
         layer[i].setActivationFunction(fxLeakyReLU);
-    layer[nLayers - 1].setActivationFunction(fxSigmoid);
+    layer[nLayers - 1].setActivationFunction(fxIdentity);
 
     size_t nw = 0;
     for (int i = 0; i < nLayers; i += 1)
@@ -71,7 +71,7 @@ int main()
 
     printf("\nComputing\n");
     for (int i = 0; i < nLayers - 1; i += 1)
-        layer[i].compute(MIN_MAX);
+        layer[i].compute(Z_SCORE);
     layer[nLayers - 1].compute(MIN_MAX, false);
 
     double *outNN = layer[nLayers - 1].getOtput();
@@ -79,7 +79,7 @@ int main()
     for (int i = 0; i < (r * c); i += 1)
     {
         finalValues[i] = (uint8_t)(outNN[i] * 255.0);
-        printf("%d\n", finalValues[i]);
+        printf("%.15lf vs %d\n", outNN[i] * 255.0, finalValues[i]);
     }
 
     out = Mat(r, c, CV_8UC1, finalValues);

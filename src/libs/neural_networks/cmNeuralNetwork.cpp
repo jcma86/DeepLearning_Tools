@@ -220,7 +220,7 @@ void Layer::printOutput()
 
 double *Layer::compute(Normalization norm, bool softMax)
 {
-    double softMaxAdd = 0.0;
+    double add = 0.0;
     double min = MAXFLOAT;
     double max = -MAXFLOAT;
 
@@ -229,7 +229,7 @@ double *Layer::compute(Normalization norm, bool softMax)
         _output[i] = _neuron[i].compute(softMax);
         min = _output[i] < min ? _output[i] : min;
         max = _output[i] > max ? _output[i] : max;
-        softMaxAdd += _output[i];
+        add += _output[i];
     }
 
     if (norm == MIN_MAX)
@@ -239,9 +239,21 @@ double *Layer::compute(Normalization norm, bool softMax)
             _output[i] = (_output[i] - min) / diff;
     }
 
+    if (norm == Z_SCORE)
+    {
+        double mean = add / _n;
+        double sum = 0.0;
+        for (size_t i = 0; i < _n; i += 1)
+            sum += (_output[i] - mean) * (_output[i] - mean);
+
+        double standardDeviation = sqrt(sum / mean);
+        for (size_t i = 0; i < _n; i += 1)
+            _output[i] = (_output[i] - mean) / standardDeviation;
+    }
+
     if (softMax)
         for (size_t i = 0; i < _n; i += 1)
-            _output[i] = _output[i] / softMaxAdd;
+            _output[i] = _output[i] / add;
 
     return _output;
 }
