@@ -8,8 +8,8 @@ find_package(OpenCV REQUIRED)
 
 # Libraries
 add_library(cmHelper STATIC ./libs/helper/cmHelper.cpp)
-add_library(cmActivationFunction STATIC ./libs/neural_networks/cmActivationFunction.cpp)
-add_library(cmNeuralNetwork STATIC ./libs/neural_networks/cmNeuralNetwork.cpp)
+add_library(cmActivationFunction STATIC ./libs/nn/cmActivationFunction.cpp)
+add_library(cmNeuralNetwork STATIC ./libs/nn/cmNeuralNetwork.cpp)
 add_library(cmPSO STATIC ./libs/pso/cmPSO.cpp)
 
 # Execs Test
@@ -32,3 +32,8 @@ target_link_libraries(${TEST_ImgNN} m ${OpenCV_LIBS} cmHelper cmNeuralNetwork cm
 set(TEST_PSO SimplePSOTest)
 add_executable(${TEST_PSO} tests/SimplePSO.cpp)
 target_link_libraries(${TEST_PSO} m cmHelper cmPSO)
+
+
+set(TEST_VideoInput VideoInputTest)
+add_executable(${TEST_VideoInput} tests/VideoInput.cpp)
+target_link_libraries(${TEST_VideoInput} m ${OpenCV_LIBS})

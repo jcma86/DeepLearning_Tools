@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include "../libs/neural_networks/cmNeuralNetwork.hpp"
-#include "../libs/neural_networks/cmActivationFunction.hpp"
+#include "../libs/nn/cmNeuralNetwork.hpp"
+#include "../libs/nn/cmActivationFunction.hpp"
 
 using namespace cmNeuralNetwork;
 

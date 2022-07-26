@@ -5,8 +5,8 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
 
-#include "../libs/neural_networks/cmNeuralNetwork.hpp"
-#include "../libs/neural_networks/cmActivationFunction.hpp"
+#include "../libs/nn/cmNeuralNetwork.hpp"
+#include "../libs/nn/cmActivationFunction.hpp"
 #include "../libs/helper/cmHelper.hpp"
 
 using namespace cv;
