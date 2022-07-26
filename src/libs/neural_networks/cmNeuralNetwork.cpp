@@ -1,17 +1,6 @@
 #include "cmNeuralNetwork.hpp"
-#include <random>
 
 using namespace cmNeuralNetwork;
-
-void NNHelper::randomWeights(size_t n, double *output, double min, double max)
-{
-    uniform_real_distribution<double> unif(min, max);
-    random_device rd; // Will be used to obtain a seed for the random number engine
-    mt19937 gen(rd());
-
-    for (size_t i = 0; i < n; i += 1)
-        output[i] = unif(gen);
-}
 
 void Neuron::setID(size_t layerIndex, size_t neuronIndex)
 {

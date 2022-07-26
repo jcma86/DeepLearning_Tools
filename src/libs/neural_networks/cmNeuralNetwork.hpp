@@ -1,7 +1,8 @@
 #ifndef __CM_LIBS_DL_NEURAL_NETWORK__
 #define __CM_LIBS_DL_NEURAL_NETWORK__
 
-#include <vector>
+#include <stdio.h>
+#include <math.h>
 
 using namespace std;
 
@@ -13,12 +14,6 @@ namespace cmNeuralNetwork
         MIN_MAX,
         Z_SCORE
     } Normalization;
-
-    class NNHelper
-    {
-    public:
-        static void randomWeights(size_t n, double *output, double min = -1.0, double max = 1.0);
-    };
 
     class Neuron
     {

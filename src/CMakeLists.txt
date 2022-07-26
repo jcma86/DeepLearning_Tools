@@ -7,8 +7,10 @@ SET(CMAKE_C_FLAGS "-Wall")
 find_package(OpenCV REQUIRED)
 
 # Libraries
-add_library(cmNeuralNetwork STATIC ./libs/neural_networks/cmNeuralNetwork.cpp)
+add_library(cmHelper STATIC ./libs/helper/cmHelper.cpp)
 add_library(cmActivationFunction STATIC ./libs/neural_networks/cmActivationFunction.cpp)
+add_library(cmNeuralNetwork STATIC ./libs/neural_networks/cmNeuralNetwork.cpp)
+add_library(cmPSO STATIC ./libs/pso/cmPSO.cpp)
 
 # Execs Test
 set(TEST_NN NeuralNetworkTest)
@@ -25,4 +27,8 @@ target_link_libraries(${TEST_WebCam} m ${OpenCV_LIBS})
 
 set(TEST_ImgNN ImgNNTest)
 add_executable(${TEST_ImgNN} tests/ImgNN.cpp)
-target_link_libraries(${TEST_ImgNN} m ${OpenCV_LIBS} cmNeuralNetwork cmActivationFunction)
+target_link_libraries(${TEST_ImgNN} m ${OpenCV_LIBS} cmHelper cmNeuralNetwork cmActivationFunction)
+
+set(TEST_PSO SimplePSOTest)
+add_executable(${TEST_PSO} tests/SimplePSO.cpp)
+target_link_libraries(${TEST_PSO} m cmHelper cmPSO)

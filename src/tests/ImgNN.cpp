@@ -7,6 +7,7 @@
 
 #include "../libs/neural_networks/cmNeuralNetwork.hpp"
 #include "../libs/neural_networks/cmActivationFunction.hpp"
+#include "../libs/helper/cmHelper.hpp"
 
 using namespace cv;
 using namespace cmNeuralNetwork;
@@ -59,7 +60,7 @@ int main()
 
     printf("Generating weights (%ld).\n", nw);
     double *w = new double[nw];
-    NNHelper::randomWeights(nw, w);
+    cmHelper::Array::randomInit(nw, w);
 
     size_t firstW = 0;
     for (int i = 0; i < nLayers; i += 1)
