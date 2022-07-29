@@ -12,6 +12,11 @@ int main()
     VideoCapture cap;
 
     cap.open("/Users/jose/Desktop/video.mov");
+    char fname[200];
+
+    // cap.get(CAP)
+
+    size_t fn = 0;
 
     while (1)
     {
@@ -20,6 +25,10 @@ int main()
 
         if (frame.empty())
             break;
+
+        sprintf(fname, "/Users/jose/Desktop/videos/test01/frame_%ld.jpg", fn);
+        imwrite(fname, frame);
+        fn += 1;
 
         imshow("frame", frame);
 

@@ -1,6 +1,7 @@
 {
     "cmake.sourceDirectory": "${workspaceFolder}/src",
     "files.associations": {
-        "locale": "cpp"
+        "locale": "cpp",
+        "new": "cpp"
     }
 }
