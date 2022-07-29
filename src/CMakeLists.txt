@@ -47,3 +47,7 @@ target_link_libraries(${TEST_Convolution} m)
 set(PROJECT_FRAMEGEN FrameGenerator)
 add_executable(${PROJECT_FRAMEGEN} projects/FrameGenerator.cpp)
 target_link_libraries(${PROJECT_FRAMEGEN} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmPSO)
+
+set(PROJECT_FACERECOG FaceRecognition)
+add_executable(${PROJECT_FACERECOG} projects/FaceRecognition.cpp)
+target_link_libraries(${PROJECT_FACERECOG} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmPSO)
