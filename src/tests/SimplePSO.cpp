@@ -4,12 +4,13 @@
 
 using namespace cmPSO;
 
-double fitness(size_t n, double *data)
+double fitness(void *params)
 {
+    psoFitnessFxParams *p = (psoFitnessFxParams *)params;
     double fitness = 0.0;
 
-    for (size_t i = 0; i < n; i += 1)
-        fitness += data[i] * data[i];
+    for (size_t i = 0; i < p->nDimensions; i += 1)
+        fitness += p->position[i] * p->position[i];
 
     return fitness;
 }

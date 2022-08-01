@@ -18,9 +18,10 @@ using namespace cmPSO;
 NeuralNetwork nn;
 uint8_t *expected;
 double lastBest = 99999999999999.99999;
-double evaluateNN(size_t n, double *weights)
+double evaluateNN(void *params)
 {
-    nn.setWeights(weights);
+    psoFitnessFxParams *p = (psoFitnessFxParams *)params;
+    nn.setWeights(p->position);
     nn.compute(Z_SCORE);
 
     double *outNN = nn.getOutput();

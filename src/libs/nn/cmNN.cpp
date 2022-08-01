@@ -257,13 +257,18 @@ void NeuralNetwork::createNeuronNetwork(size_t inSize, size_t nLayers, size_t *n
     _output = _layer[_nLayers - 1].getOtput();
 }
 
-void NeuralNetwork::setInputs(double *inputs)
+void NeuralNetwork::setInputs(double *inputs, bool onlyFirstLayer)
 {
     _inputs = inputs;
 
     size_t firstIn = 0;
-    for (size_t l = 0; l < _nLayers; l += 1)
-        _layer[l].setInputs(l == 0 ? _inputs : _layer[l - 1].getOtput());
+
+    _layer[0].setInputs(_inputs);
+    if (!onlyFirstLayer)
+    {
+        for (size_t l = 1; l < _nLayers; l += 1)
+            _layer[l].setInputs(_layer[l - 1].getOtput());
+    }
 }
 
 void NeuralNetwork::setWeights(double *weights)
@@ -281,7 +286,8 @@ void NeuralNetwork::setWeights(double *weights)
 
 void NeuralNetwork::setActivationFunction(char ***fxNames)
 {
-    for (size_t l = 0; l < _nLayers; l += 1){
+    for (size_t l = 0; l < _nLayers; l += 1)
+    {
         _layer[l].setActivationFunction((*fxNames)[l]);
     }
 }
@@ -302,6 +308,11 @@ double *NeuralNetwork::compute(Normalization norm, bool softMax)
 double *NeuralNetwork::getOutput()
 {
     return _output;
+}
+
+size_t NeuralNetwork::getInputSize()
+{
+    return _nI;
 }
 
 size_t NeuralNetwork::getOutputSize()

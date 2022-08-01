@@ -3,6 +3,9 @@
     "files.associations": {
         "locale": "cpp",
         "new": "cpp",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "filesystem": "cpp",
+        "string": "cpp",
+        "fstream": "cpp"
     }
 }

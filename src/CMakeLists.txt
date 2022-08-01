@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.9)
 project(cmDeepLearning VERSION 1.0.1 DESCRIPTION "DeepLearning tools")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-SET(CMAKE_C_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+set(CMAKE_C_FLAGS "-Wall")
+
+include(/Users/jose/vcpkg/scripts/buildsystems/vcpkg.cmake)
 
 find_package(OpenCV REQUIRED)
+find_package(Threads REQUIRED)
+find_package(websocketpp CONFIG REQUIRED)
 
 # Libraries
 add_library(cmHelper STATIC ./libs/helper/cmHelper.cpp)
@@ -13,6 +17,7 @@ add_library(cmNN STATIC ./libs/nn/cmNN.cpp)
 add_library(cmPSO STATIC ./libs/pso/cmPSO.cpp)
 
 target_link_libraries(${cmNN} cmActivationFunction)
+# target_link_libraries(${cmPSO} m pthread)
 
 # Execs Test
 set(TEST_NN NeuralNetworkTest)
@@ -42,6 +47,14 @@ target_link_libraries(${TEST_VideoInput} m ${OpenCV_LIBS})
 set(TEST_Convolution ConvolutionTest)
 add_executable(${TEST_Convolution} tests/Convolution.cpp)
 target_link_libraries(${TEST_Convolution} m)
+
+set(TEST_SocketServer SocketServerTest)
+add_executable(${TEST_SocketServer} tests/SocketServer.cpp)
+target_link_libraries(${TEST_SocketServer} m websocketpp::websocketpp)
+
+set(TEST_SocketClient SocketClientTest)
+add_executable(${TEST_SocketClient} tests/SocketClient.cpp)
+target_link_libraries(${TEST_SocketClient} m)
 
 
 set(PROJECT_FRAMEGEN FrameGenerator)

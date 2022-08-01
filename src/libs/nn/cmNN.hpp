@@ -111,7 +111,7 @@ namespace cmNN
         NeuralNetwork(){};
         ~NeuralNetwork();
         void createNeuronNetwork(size_t inSize, size_t nLayers, size_t *neuronsPerLayer);
-        void setInputs(double *inputs);
+        void setInputs(double *inputs, bool onlyFirstLayer = false);
         void setWeights(double *weights);
         void setActivationFunction(char ***fxNames);
 
@@ -120,6 +120,7 @@ namespace cmNN
 
         double *compute(Normalization norm = NONE, bool softMax = false);
         double* getOutput();
+        size_t getInputSize();
         size_t getOutputSize();
 
         void printNeuralNetwork();

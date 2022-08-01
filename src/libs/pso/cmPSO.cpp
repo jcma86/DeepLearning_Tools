@@ -1,5 +1,6 @@
 #include "cmPSO.hpp"
 #include <random>
+#include <pthread.h>
 
 using namespace cmPSO;
 
@@ -40,7 +41,7 @@ void Particle::evolve()
     for (size_t d = 0; d < _dimension; d += 1)
     {
         _position[d] += _velocity[d];
-        _velocity[d] = (_iW * _velocity[d]) + ((_cW * unif(gen)) * (_bestPosition[d]) - _position[d]) + ((_sW * unif(gen)) * (_bestGlobalPosition[d]) - _position[d]);
+        _velocity[d] = (_iW * _velocity[d]) + ((_cW * unif(gen)) * (_bestPosition[d]) - _position[d]) / +((_sW * unif(gen)) * (_bestGlobalPosition[d]) - _position[d]);
 
         _velocity[d] = _position[d] > _maxP || _position[d] < _minP ? _velocity[d] * -1.0 : _velocity[d];
         _velocity[d] = _velocity[d] > _maxV ? _maxV : _velocity[d];
@@ -53,8 +54,10 @@ void Particle::evolve()
 
 void Particle::updateBest()
 {
-    if (!isReady())
+    if (!isReady()){
+        printf("Particle not ready %ld\n", _id);
         return;
+    }
 
     bool updateMax = false;
     bool updateMin = false;
@@ -78,6 +81,7 @@ void Particle::setBestPosition(double *bestPosition, bool reallocate)
             delete[] _bestPosition;
             _bestPosition = NULL;
         }
+
         if (!_bestPosition)
             _bestPosition = new double[_dimension];
 
@@ -89,9 +93,7 @@ void Particle::setBestPosition(double *bestPosition, bool reallocate)
 void Particle::setBestGlobalPosition(double *position)
 {
     if (hasDimension())
-    {
         _bestGlobalPosition = position;
-    }
 }
 
 void Particle::setBestFitness(double bestFitness)
@@ -120,16 +122,21 @@ void Particle::setFitness(double fitness)
     _fitness = fitness;
 }
 
-void Particle::setFitnessFunction(double (*fitnessFunction)(size_t, double *))
+void Particle::setFitnessFunction(double (*fitnessFunction)(void *))
 {
     _fitnessFunction = fitnessFunction;
 }
 
 void Particle::compute()
 {
+    psoFitnessFxParams params;
+    params.nDimensions = _dimension;
+    params.position = _position;
+    params.particleID = _id;
+
     if (isReady())
     {
-        _fitness = _fitnessFunction(_dimension, _position);
+        _fitness = _fitnessFunction((void *)&params);
         updateBest();
     }
 }
@@ -207,7 +214,7 @@ void Swarm::setID(size_t id)
     _id = id;
 }
 
-void Swarm::setFitnessFunction(double (*fitnessFunction)(size_t, double *))
+void Swarm::setFitnessFunction(double (*fitnessFunction)(void *))
 {
     for (size_t p = 0; p < _population; p += 1)
         _particle[p].setFitnessFunction(fitnessFunction);
@@ -269,6 +276,11 @@ double Swarm::getBestFitness()
     return _bestFitness;
 }
 
+size_t Swarm::getBestParticle()
+{
+    return _bestParticle;
+}
+
 void Swarm::updateBest()
 {
     bool update = false;
@@ -315,10 +327,58 @@ void Swarm::setBestFitness(double bestFitness)
     _bestFitness = bestFitness;
 }
 
-void Swarm::compute()
+void *Swarm::evaluateThread(void *args)
 {
-    for (size_t p = 0; p < _population; p += 1)
-        _particle[p].compute();
+    psoThreadArgs *params = (psoThreadArgs *)args;
+    params->particle->compute();
+
+    return NULL;
+}
+
+void Swarm::compute(size_t maxThreads)
+{
+    size_t thrPerBatch = maxThreads > _population ? _population : maxThreads;
+    size_t thrCreated = 0;
+
+    while (thrCreated < _population)
+    {
+        pthread_attr_t attr;
+        pthread_t *threads = new pthread_t[thrPerBatch];
+        psoThreadArgs *args = new psoThreadArgs[thrPerBatch];
+
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        size_t created = 0;
+
+        for (size_t ct = 0; ct < thrPerBatch; ct += 1)
+        {
+            args[created].particleID = thrCreated;
+            args[created].particle = &_particle[thrCreated];
+            int rc = pthread_create(&threads[created], &attr, &Swarm::evaluateThread, (void *)&args[created]);
+            if (rc == 0)
+            {
+                thrCreated += 1;
+                created += 1;
+            }
+        }
+
+        printf("\rEvaluating %ld of %ld particles.", thrCreated, _population);
+        fflush(stdout);
+
+        for (size_t i = 0; i < created; i += 1)
+            int rc = pthread_join(threads[i], NULL);
+
+        thrPerBatch = thrCreated + thrPerBatch > _population ? _population - thrCreated : thrPerBatch;
+        delete[] threads;
+        delete[] args;
+    }
+
+    // for (size_t p = 0; p < _population; p += 1)
+    // {
+    //     printf("\rComputing Particle %ld/%ld", p + 1, _population);
+    //     fflush(stdout);
+    //     _particle[p].compute();
+    // }
     updateBest();
 }
 
