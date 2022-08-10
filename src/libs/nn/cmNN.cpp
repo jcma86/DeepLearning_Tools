@@ -1,8 +1,9 @@
 #include "cmNN.hpp"
 
 #include <string.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <sstream>
 
 using namespace cmNN;
 
@@ -16,6 +17,8 @@ void Neuron::createNeuron(size_t index, size_t nInputs)
 bool Neuron::isReady()
 {
     bool ready = _nI > 0 && (_nI + _nE + 1) == _nW && _inputs != NULL && _weights != NULL && _activationFunction != NULL;
+
+    // printf("Here: %d %d %d %d %d\n", _nI > 0, (_nI + _nE + 1) == _nW, _inputs != NULL, _weights != NULL, _activationFunction != NULL);
 
     if (!ready)
         printf("[WARNING]: Neuron is not ready, please set inputs, weights (size of inputs and weights must be the same), bias and activation function.\n");
@@ -195,7 +198,7 @@ double *Layer::compute(Normalization norm, bool softMax)
         add += _output[i];
     }
 
-    if (norm == MIN_MAX)
+    if (norm == MIN_MAX && _n > 1)
     {
         double diff = max - min;
         for (size_t i = 0; i < _n; i += 1)
@@ -334,19 +337,127 @@ void NeuralNetwork::printNeuralNetwork()
         printf("%.15lf\n", _weights[w]);
 }
 
-void NeuralNetwork::saveToFIle(const char *path)
+void NeuralNetwork::saveToFile(const char *path, double *weights)
 {
+    double *wToSave = weights ? weights : _weights;
     ofstream file(path);
     file << "++++ NeuralNetwork ++++\n";
     file << "LAYERS:" << _nLayers << "\n";
     file << "LAYER_SIZES:";
     for (size_t l = 0; l < _nLayers; l += 1)
-        file << setprecision(16) << _neuronsPerLayer[l] << ((l == _nLayers - 1) ? "\n" : ",");
+        file << setprecision(15) << _neuronsPerLayer[l] << ((l == _nLayers - 1) ? "\n" : ",");
     file << "NUM_INPUTS:" << _nI << "\n";
     file << "NUM_WEIGHTS:" << _nW << "\n";
     file << "WEIGHTS:\n";
     for (size_t w = 0; w < _nW; w += 1)
-        file << setprecision(16) << _weights[w] << "\n";
+    {
+        char val[50];
+        snprintf(val, 40, "%.15lf\n", wToSave[w]);
+        file << val;
+    }
+
+    file.close();
+}
+
+void NeuralNetwork::saveToFile(const char *path, double *weights, NeuralNetworkConfiguration *config)
+{
+    ofstream file(path);
+    file << "++++ NeuralNetwork ++++\n";
+    file << "LAYERS:" << config->nLayers << "\n";
+    file << "LAYER_SIZES:";
+    for (size_t l = 0; l < config->nLayers; l += 1)
+        file << setprecision(15) << config->neuronsPerLayer[l] << ((l == config->nLayers - 1) ? "\n" : ",");
+    file << "NUM_INPUTS:" << config->nInputs << "\n";
+    file << "NUM_WEIGHTS:" << config->nWeights << "\n";
+    file << "WEIGHTS:\n";
+    for (size_t w = 0; w < config->nWeights; w += 1)
+    {
+        char val[50];
+        snprintf(val, 40, "%.15lf\n", weights[w]);
+        file << val;
+    }
+
+    file.close();
+}
+
+void NeuralNetwork::loadConfiguration(const char *filePath, NeuralNetworkConfiguration *configOutput)
+{
+    fstream file;
+    file.open(filePath, ios::in);
+
+    if (!file.is_open())
+    {
+        printf("[ERROR]: Failed to open file %s\n", filePath);
+        return;
+    }
+
+    printf("Loading NN configuration from file.\n");
+
+    configOutput->neuronsPerLayer = NULL;
+    configOutput->nExtraInputs = 0;
+    configOutput->nInputs = 0;
+    configOutput->nLayers = 0;
+    configOutput->nWeights = 0;
+    configOutput->weights = NULL;
+
+    char tokenProp = ':';
+    char tokenVal = ',';
+    string line;
+    size_t count = 0;
+    while (getline(file, line))
+    {
+        size_t tokenPos = line.find(tokenProp);
+        if (tokenPos != string::npos)
+        {
+            string prop = line.substr(0, tokenPos);
+            line.erase(0, tokenPos + 1);
+            if (prop.compare("LAYERS") == 0)
+            {
+                stringstream sstream(line);
+                sstream >> configOutput->nLayers;
+                configOutput->neuronsPerLayer = new size_t[configOutput->nLayers];
+            }
+            else if (prop.compare("LAYER_SIZES") == 0)
+            {
+                for (size_t l = 0; l < configOutput->nLayers; l += 1)
+                {
+                    tokenPos = line.find(tokenVal);
+                    string val = line.substr(0, tokenPos);
+                    line.erase(0, tokenPos + 1);
+                    stringstream sstream(val);
+                    sstream >> configOutput->neuronsPerLayer[l];
+                }
+            }
+            else if (prop.compare("NUM_INPUTS") == 0)
+            {
+                stringstream sstream(line);
+                sstream >> configOutput->nInputs;
+            }
+            else if (prop.compare("NUM_WEIGHTS") == 0)
+            {
+                stringstream sstream(line);
+                sstream >> configOutput->nWeights;
+                configOutput->weights = new double[configOutput->nWeights];
+            }
+            else if (prop.compare("WEIGHTS") == 0)
+            {
+                size_t cW = 0;
+                while (getline(file, line) && cW < configOutput->nWeights)
+                {
+                    stringstream sstream(line);
+                    sstream >> configOutput->weights[cW];
+                    cW += 1;
+                }
+            }
+        }
+    }
+    if (configOutput->nWeights == 0)
+    {
+        configOutput->nWeights = (configOutput->nInputs + 1) * configOutput->neuronsPerLayer[0];
+        for (size_t l = 1; l < configOutput->nLayers; l += 1)
+            configOutput->nWeights += (configOutput->neuronsPerLayer[l - 1] + 1) * (configOutput->neuronsPerLayer[l]);
+    }
+    printf("NN configuration loaded.\n");
 
     file.close();
 }

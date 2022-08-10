@@ -41,7 +41,7 @@ void Particle::evolve()
     for (size_t d = 0; d < _dimension; d += 1)
     {
         _position[d] += _velocity[d];
-        _velocity[d] = (_iW * _velocity[d]) + ((_cW * unif(gen)) * (_bestPosition[d]) - _position[d]) / +((_sW * unif(gen)) * (_bestGlobalPosition[d]) - _position[d]);
+        _velocity[d] = (_iW * _velocity[d]) + ((_cW * unif(gen)) * (_bestPosition[d]) - _position[d]) + ((_sW * unif(gen)) * (_bestGlobalPosition[d]) - _position[d]);
 
         _velocity[d] = _position[d] > _maxP || _position[d] < _minP ? _velocity[d] * -1.0 : _velocity[d];
         _velocity[d] = _velocity[d] > _maxV ? _maxV : _velocity[d];
@@ -49,12 +49,16 @@ void Particle::evolve()
 
         _position[d] = _position[d] < _minP ? _minP : _position[d];
         _position[d] = _position[d] > _maxP ? _maxP : _position[d];
+
+        _position[d] = floor(_precisionMult * _position[d]) / _precisionMult;
+        _velocity[d] = floor(_precisionMult * _velocity[d]) / _precisionMult;
     }
 }
 
 void Particle::updateBest()
 {
-    if (!isReady()){
+    if (!isReady())
+    {
         printf("Particle not ready %ld\n", _id);
         return;
     }
@@ -168,6 +172,24 @@ void Particle::initVelocity(double *velocity, double minV, double maxV)
     }
 }
 
+void Particle::setPosition(double *position)
+{
+    if (!_position)
+    {
+        printf("[ERROR]: Must init position of swarm/particle first.\n");
+        return;
+    }
+
+    for (size_t d = 0; d < _dimension; d += 1)
+        _position[d] = position[d];
+}
+
+void Particle::setPrecision(double precision)
+{
+    _precision = precision;
+    _precisionMult = pow(10, _precision);
+}
+
 double *Particle::getPosition()
 {
     return _position;
@@ -251,6 +273,10 @@ void Swarm::initPosition(double *position, double minP, double maxP)
     _position = position;
     for (size_t p = 0; p < _population; p += 1)
         _particle[p].initPosition(&_position[p * _dimension], minP, maxP);
+
+    double *p = _particle[0].getPosition();
+    for (size_t d = 0; d < _dimension; d += 1)
+        _bestPosition[d] = p[d];
 }
 
 void Swarm::initVelocity(double *velocity, double minV, double maxV)
@@ -281,6 +307,11 @@ size_t Swarm::getBestParticle()
     return _bestParticle;
 }
 
+double *Swarm::getParticlePosition(size_t particle)
+{
+    return _particle[particle].getPosition();
+}
+
 void Swarm::updateBest()
 {
     bool update = false;
@@ -300,6 +331,7 @@ void Swarm::updateBest()
     }
     if (update)
     {
+        // printf("\t\t\t\t Best: %.15lf", _particle[_bestParticle].getBestFitness());
         setBestFitness(_particle[_bestParticle].getBestFitness());
         setBestPosition(_particle[_bestParticle].getBestPosition());
     }
@@ -325,6 +357,19 @@ void Swarm::setBestPosition(double *bestPosition, bool reallocate)
 void Swarm::setBestFitness(double bestFitness)
 {
     _bestFitness = bestFitness;
+}
+
+void Swarm::setParticlePosition(size_t particle, double *position)
+{
+    size_t p = particle >= _population ? _population - 1 : particle;
+    _particle[p].setPosition(position);
+}
+
+void Swarm::setPrecision(double precision)
+{
+    _precision = precision;
+    for (size_t p = 0; p < _population; p += 1)
+        _particle[p].setPrecision(_precision);
 }
 
 void *Swarm::evaluateThread(void *args)
@@ -373,12 +418,6 @@ void Swarm::compute(size_t maxThreads)
         delete[] args;
     }
 
-    // for (size_t p = 0; p < _population; p += 1)
-    // {
-    //     printf("\rComputing Particle %ld/%ld", p + 1, _population);
-    //     fflush(stdout);
-    //     _particle[p].compute();
-    // }
     updateBest();
 }
 

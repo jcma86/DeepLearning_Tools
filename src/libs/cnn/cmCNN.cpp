@@ -28,7 +28,7 @@ void CNeuron::setInput(double *input, size_t w, size_t h, size_t d)
     _input = input;
 }
 
-void CNeuron::setKernel(double *kernel, size_t w, size_t h, size_t d)
+void CNeuron::setKernel(double *kernel, size_t w, size_t h, size_t d, size_t l)
 {
     _kW = w;
     _kH = h;
@@ -48,7 +48,8 @@ void CNeuron::setActivationFunction(double (*activationFunction)(double))
 
 void CNeuron::init()
 {
-    if (!isReady()){
+    if (!isReady())
+    {
         printf("[ERROR]: You must set firts the input and kernel.\n");
         return;
     }
@@ -69,17 +70,17 @@ size_t CNeuron::getNumOfParamsNeeded()
 
 size_t CNeuron::getOutputWidth()
 {
-    return ((_inW - _kW) / _stride) + 1;
+    return ((_inW - (_kW + ((_kW + 1) * (_l - 1)))) / _stride) + 1;
 }
 
 size_t CNeuron::getOutputHeight()
 {
-    return ((_inH - _kH) / _stride) + 1;
+    return ((_inH - (_kH + ((_kH + 1) * (_l - 1)))) / _stride) + 1;
 }
 
 size_t CNeuron::getOutputDepth()
 {
-    return ((_inD - _kD) / _stride) + 1;
+    return ((_inD - (_kD + ((_kD + 1) * (_l - 1)))) / _stride) + 1;
 }
 
 void CNeuron::compute()
@@ -94,11 +95,14 @@ void CNeuron::compute()
     size_t outW = getOutputWidth();
     size_t outC = getOutputDepth();
 
-    for (int indexD = dStart; indexD < (int)(_inD - dStart); indexD += _stride)
+    size_t step = _stride + (_l - 1);
+
+    // TODO: Add support for dilatation.
+    for (int indexD = dStart + (_l - 1); indexD < (int)(_inD - dStart - (_l - 1)); indexD += step)
     {
-        for (int indexH = hStart; indexH < (_inH - hStart); indexH += _stride)
+        for (int indexH = hStart + (_l - 1); indexH < (int)(_inH - hStart - (_l - 1)); indexH += step)
         {
-            for (int indexW = wStart; indexW < (_inW - wStart); indexW += _stride)
+            for (int indexW = wStart + (_l - 1); indexW < (int)(_inW - wStart - (_l - 1)); indexW += step)
             {
                 int outIndex = outC * ((outW * (indexH - hStart)) + (indexW - wStart)) + (indexD - dStart);
                 _output[outIndex] = 0.0;

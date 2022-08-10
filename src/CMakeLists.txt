@@ -9,6 +9,7 @@ include(/Users/jose/vcpkg/scripts/buildsystems/vcpkg.cmake)
 find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 find_package(websocketpp CONFIG REQUIRED)
+find_package(Boost COMPONENTS program_options REQUIRED)
 
 # Libraries
 add_library(cmHelper STATIC ./libs/helper/cmHelper.cpp)
@@ -54,7 +55,7 @@ target_link_libraries(${TEST_SocketServer} m websocketpp::websocketpp)
 
 set(TEST_SocketClient SocketClientTest)
 add_executable(${TEST_SocketClient} tests/SocketClient.cpp)
-target_link_libraries(${TEST_SocketClient} m)
+target_link_libraries(${TEST_SocketClient} m websocketpp::websocketpp)
 
 
 set(PROJECT_FRAMEGEN FrameGenerator)
@@ -63,4 +64,4 @@ target_link_libraries(${PROJECT_FRAMEGEN} m ${OpenCV_LIBS} cmHelper cmActivation
 
 set(PROJECT_FACERECOG FaceRecognition)
 add_executable(${PROJECT_FACERECOG} projects/FaceRecognition.cpp)
-target_link_libraries(${PROJECT_FACERECOG} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmPSO)
+target_link_libraries(${PROJECT_FACERECOG} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmPSO Boost::program_options)

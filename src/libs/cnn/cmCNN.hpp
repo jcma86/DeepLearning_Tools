@@ -19,6 +19,7 @@ namespace cmCNN
         size_t _kW = 1;
         size_t _kH = 1;
         size_t _kD = 1;
+        size_t _l = 1;
 
         double *_kernel = NULL;
         uint8_t _stride = 1;
@@ -36,10 +37,10 @@ namespace cmCNN
         ~CNeuron();
 
         void setInput(double *input, size_t w = 1, size_t h = 1, size_t d = 1);
-        void setKernel(double *kernel, size_t w = 1, size_t h = 1, size_t d = 1);
+        void setKernel(double *kernel, size_t w = 1, size_t h = 1, size_t d = 1, size_t l = 1);
         void setStride(uint8_t stride);
         void setMaxPoolingSize(uint8_t maxPoolSize);
-        void setActivationFunction(double (*_activationFunction)(double), const char *activationFXName);
+        void setActivationFunction(double (*_activationFunction)(double));
         void init();
 
         size_t getNumOfParamsNeeded();

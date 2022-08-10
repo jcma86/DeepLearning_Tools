@@ -16,6 +16,18 @@ namespace cmNN
         Z_SCORE
     } Normalization;
 
+    typedef struct
+    {
+        size_t nInputs;
+        size_t nExtraInputs;
+        size_t nWeights;
+
+        size_t nLayers;
+        size_t *neuronsPerLayer;
+
+        double *weights;
+    } NeuralNetworkConfiguration;
+
     class Neuron
     {
     private:
@@ -116,14 +128,16 @@ namespace cmNN
         void setActivationFunction(char ***fxNames);
 
         size_t getWeightsNeeded();
-        void saveToFIle(const char *path);
 
         double *compute(Normalization norm = NONE, bool softMax = false);
-        double* getOutput();
+        double *getOutput();
         size_t getInputSize();
         size_t getOutputSize();
 
         void printNeuralNetwork();
+        void saveToFile(const char *path, double *weights = NULL);
+        static void loadConfiguration(const char *filePath, NeuralNetworkConfiguration *configOutput);
+        static void saveToFile(const char *path, double *weights, NeuralNetworkConfiguration *config);
     };
 };
 

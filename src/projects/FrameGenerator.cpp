@@ -164,7 +164,7 @@ int main()
             lastBest = pso.getBestFitness();
             char path[150];
             sprintf(path, "bests/%d.txt", (int)lastBest);
-            nn.saveToFIle(path);
+            nn.saveToFile(path);
         }
         pso.evolve();
 

@@ -8,6 +8,11 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
 
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/option.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/program_options/parsers.hpp>
+
 #include "../libs/helper/cmHelper.hpp"
 #include "../libs/nn/cmNN.hpp"
 #include "../libs/nn/cmActivationFunction.hpp"
@@ -17,6 +22,8 @@ using namespace std;
 using namespace cv;
 using namespace cmNN;
 using namespace cmPSO;
+
+namespace po = boost::program_options;
 
 typedef struct
 {
@@ -36,6 +43,8 @@ typedef struct
     unsigned int occlusion;
     unsigned int pose;
     unsigned int invalid;
+
+    double data[900];
 } Face;
 
 typedef struct
@@ -47,39 +56,36 @@ typedef struct
 double lastBest = -99999999999999.99999;
 
 vector<ExampleInfo> examples;
-NeuralNetwork nn;
 Swarm pso;
+size_t particleToSet = 0;
 size_t validFaces = 0;
 size_t invalidFaces = 0;
-double *nnInput = NULL;
 
-void buildExpectedResult(ExampleInfo example)
-{
-    Mat imgExample = imread("/Users/jose/Downloads/WIDER_DATASET/training/" + example.path, 0);
-
-    for (size_t f = 0; f < example.faces.size(); f += 1)
-    {
-        // circle(imgExample, Point2d(example.faces[f].x1 + example.faces[f].width / 2, example.faces[f].row + example.faces[f].height / 2), 5, 250, 2);
-    }
-
-    // rectangle(imgExample, Point2d(example.faces[0].column, example.faces[0].row), Point2d(example.faces[0].column + example.faces[0].width, example.faces[0].row + example.faces[0].height), 0, 3);
-    imshow("Example", imgExample);
-
-    waitKey(0);
-}
-
+NeuralNetworkConfiguration nnConfig;
 double trainNN(void *psoParams)
 {
+    NeuralNetwork nn;
     psoFitnessFxParams *params = (psoFitnessFxParams *)psoParams;
     double fitness = 0.0;
 
+    char **fxs = new char *[nnConfig.nLayers];
+    for (int l = 0; l < nnConfig.nLayers; l += 1)
+    {
+        fxs[l] = new char[15];
+        strcpy(fxs[l], "fxLeakyReLU");
+        if (l == nnConfig.nLayers - 1)
+            strcpy(fxs[l], "fxSigmoid");
+    }
+
+    nn.createNeuronNetwork(nnConfig.nInputs, nnConfig.nLayers, nnConfig.neuronsPerLayer);
+    nn.setActivationFunction(&fxs);
     nn.setWeights(params->position);
+    nn.setInputs(NULL);
 
-    // char windowName[50];
-    // sprintf(windowName, "Face Example For Particle %ld", params->particleID);
+    // for (size_t d = 0; d < params->nDimensions; d += 1)
+    //     fitness += params->position[d];
 
-    // namedWindow(windowName);
-    // moveWindow(windowName, 50, 50);
+    // return fitness;
 
     size_t correctValid = 0;
     size_t incorrectValid = 0;
@@ -90,28 +96,17 @@ double trainNN(void *psoParams)
     size_t totalExamples = examples.size();
     for (size_t e = 0; e < totalExamples; e += 1)
     {
-        Mat img = imread("/Users/jose/Downloads/WIDER_DATASET/training/" + examples[e].path, 0);
-        uint8_t *ptr;
-
         size_t totalFaces = examples[e].faces.size();
         for (size_t f = 0; f < totalFaces; f += 1)
         {
             Face *face = &examples[e].faces[f];
-            Rect crop(face->x1, face->y1, face->width, face->height);
-            Mat faceImg = img(crop);
-
-            resize(faceImg, faceImg, Size(30, 30));
-
-            ptr = (uint8_t *)faceImg.data;
-
-            for (size_t i = 0; i < nn.getInputSize(); i += 1)
-                nnInput[i] = (double)ptr[i] / 255.0;
-
-            // imshow(windowName, faceImg);
+            nn.setInputs(face->data, true);
 
             nn.compute(Z_SCORE);
             double *outNN = nn.getOutput();
             size_t outSize = nn.getOutputSize();
+
+            // printf("Output %ld: %.15lf\n", outSize, outNN[0]);
 
             if (outNN[0] >= 0.9)
             {
@@ -123,11 +118,12 @@ double trainNN(void *psoParams)
                 correctInvalid += face->invalid == 1 ? 1 : 0;
                 incorrectValid += face->invalid == 0 ? 1 : 0;
             }
-
-            // waitKey(1);
         }
     }
-    // destroyAllWindows();
+
+    for (size_t l = 0; l < nnConfig.nLayers; l += 1)
+        delete[] fxs[l];
+    delete[] fxs;
 
     double a = (double)correctValid / (double)validFaces;
     double b = (double)correctInvalid / (double)invalidFaces;
@@ -140,8 +136,59 @@ double trainNN(void *psoParams)
     return fitness;
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    po::options_description desc("Allowed options");
+    string nnconfigpath;
+    bool setpso = false;
+    bool loadNNConfig = false;
+    desc.add_options()("help", "Lists valid options.")("loadNNConfig", po::value<string>(), "Opens NN configuration from file.")("setParticlePosition", po::value<size_t>(), "")("swarmSize", po::value<int>(), "")("psoMinVel", po::value<double>(), "")("psoMaxVel", po::value<double>(), "")("psoMinPos", po::value<double>(), "")("psoMaxPos", po::value<double>(), "");
+
+    double minPos = -10.0;
+    double maxPos = -10.0;
+    double minVel = -0.5;
+    double maxVel = -0.5;
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    int swarmSize = 8;
+    if (vm.count("help"))
+    {
+        cout << desc << "\n";
+        return 1;
+    }
+    if (vm.count("loadNNConfig"))
+    {
+        nnconfigpath = vm["loadNNConfig"].as<string>();
+        loadNNConfig = true;
+    }
+    if (vm.count("swarmSize"))
+    {
+        swarmSize = vm["swarmSize"].as<int>();
+    }
+    if (vm.count("setParticlePosition"))
+    {
+        setpso = true;
+        particleToSet = vm["setParticlePosition"].as<size_t>();
+    }
+    if (vm.count("psoMinVel"))
+    {
+        minVel = vm["psoMinVel"].as<double>();
+    }
+    if (vm.count("psoMaxVel"))
+    {
+        maxVel = vm["psoMaxVel"].as<double>();
+    }
+    if (vm.count("psoMinPos"))
+    {
+        minPos = vm["psoMinPos"].as<double>();
+    }
+    if (vm.count("psoMaxPos"))
+    {
+        maxPos = vm["psoMaxPos"].as<double>();
+    }
+
     fstream file;
     file.open("/Users/jose/Downloads/WIDER_DATASET/wider_face_split/wider_face_train_bbx_gt.txt", ios::in);
 
@@ -173,63 +220,55 @@ int main()
             if (aFace.x1 == aFace.x2 || aFace.y1 == aFace.y2)
                 continue;
 
-            // printf("%d,%d,%d,%d\n", aFace.x1, aFace.y1, aFace.x2, aFace.y2);
-            // printf("%d,%d,%d,%d,%d,%d\n", aFace.blur, aFace.expression, aFace.illumination, aFace.invalid, aFace.occlusion, aFace.pose);
-            // waitKey(500);
             if (aFace.invalid == 0)
                 validFaces += 1;
             if (aFace.invalid == 1)
                 invalidFaces += 1;
 
+            Mat img = imread("/Users/jose/Downloads/WIDER_DATASET/training/" + anExample.path, 0);
+            uint8_t *ptr;
+
+            Rect crop(aFace.x1, aFace.y1, aFace.width, aFace.height);
+            Mat faceImg = img(crop);
+            resize(faceImg, faceImg, Size(30, 30));
+
+            ptr = (uint8_t *)faceImg.data;
+
+            for (size_t i = 0; i < 900; i += 1)
+                aFace.data[i] = (double)ptr[i] / 255.0;
+
             anExample.faces.push_back(aFace);
         }
         examples.push_back(anExample);
+        // if (examples.size() > 15)
+        //     break;
     }
     printf("Valid faces  : %ld\n", validFaces);
     printf("Invalid faces: %ld\n", invalidFaces);
 
-    /* NEURAL NETWORK CREATION - START */
-    int inC = 30;
-    int inR = 30;
-    size_t nLayers = 15;
-    size_t *neuronsPerLayer = new size_t[nLayers];
-    nnInput = new double[inC * inR];
-    char **fxs = new char *[nLayers];
-    for (int l = 0; l < nLayers; l += 1)
-    {
-        neuronsPerLayer[l] = 500;
-        if (l == 0)
-            neuronsPerLayer[l] = 2 * inR * inC;
-        if (l == nLayers - 1)
-            neuronsPerLayer[l] = 7;
-
-        fxs[l] = new char[15];
-        strcpy(fxs[l], "fxLeakyReLU");
-        if (l == nLayers - 1)
-            strcpy(fxs[l], "fxSigmoid");
-    }
-
-    nn.createNeuronNetwork(inC * inR, nLayers, neuronsPerLayer);
-    nn.setActivationFunction(&fxs);
-    nn.setInputs(nnInput);
-
-    size_t countWeights = nn.getWeightsNeeded();
-    /* NEURAL NETWORK CREATION - END */
+    NeuralNetwork::loadConfiguration(nnconfigpath.c_str(), &nnConfig);
+    printf("Weights needed: %ld\n", nnConfig.nWeights);
 
     /* PSO CREATION - START */
-    size_t swarmDim = pso.createSwarm(15, countWeights);
+    size_t swarmDim = pso.createSwarm(swarmSize, nnConfig.nWeights);
     double *position = new double[swarmDim];
     double *velocity = new double[swarmDim];
 
     printf("Creating vectors %ld\n", swarmDim);
-    cmHelper::Array::randomInit(swarmDim, position, -0.02, 0.02);
-    cmHelper::Array::randomInit(swarmDim, velocity, -0.005, 0.005);
+    cmHelper::Array::randomInit(swarmDim, position, minPos, maxPos);
+    cmHelper::Array::randomInit(swarmDim, velocity, minVel, maxVel);
     printf("Creating vectors complete\n");
 
     pso.setFitnessFunction(trainNN);
-    pso.initPosition(position, -2.0, 2.0);
-    pso.initVelocity(velocity, -0.5, 0.5);
+    pso.initPosition(position, minPos, maxPos);
+    pso.initVelocity(velocity, minVel, maxVel);
     pso.initWeights(0.729, 1.4944, 1.4944);
+    if (setpso)
+    {
+        printf("Setting particle position from NN file.\n");
+        pso.setParticlePosition(particleToSet, nnConfig.weights);
+    }
+    pso.setPrecision(15);
     /* PSO CREATION - END */
 
     for (int g = 0; g < 1000; g += 1)
@@ -239,9 +278,11 @@ int main()
         if (lastBest != pso.getBestFitness())
         {
             lastBest = pso.getBestFitness();
-            char path[150];
-            sprintf(path, "bests/%d.txt", g);
-            nn.saveToFIle(path);
+            stringstream stream;
+            stream << fixed << setprecision(5) << lastBest;
+            string path = "bests/" + stream.str() + ".txt";
+
+            NeuralNetwork::saveToFile(path.c_str(), pso.getBestPosition(), &nnConfig);
         }
 
         pso.evolve();
@@ -251,11 +292,9 @@ int main()
         //     break;
     }
 
-    for (size_t l = 0; l < nLayers; l += 1)
-        delete[] fxs[l];
-    delete[] fxs;
-    delete[] neuronsPerLayer;
-    delete[] nnInput;
+    delete[] nnConfig.neuronsPerLayer;
+    delete[] nnConfig.weights;
+    // delete[] nnInput;
     delete[] position;
     delete[] velocity;
 

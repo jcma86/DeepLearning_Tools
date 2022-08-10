@@ -11,6 +11,8 @@ namespace cmPSO
     class Particle
     {
     private:
+        double _precision = 15.0;
+        double _precisionMult = 1000000000000000.0;
         size_t _id;
         size_t _dimension = 0;
         bool _maximize = true;
@@ -29,7 +31,7 @@ namespace cmPSO
         double *_bestPosition = NULL;
         double *_bestGlobalPosition = NULL;
         double _fitness;
-        double _bestFitness = -999999999999.99999;
+        double _bestFitness = -9999999999.99999;
 
         double (*_fitnessFunction)(void *) = NULL;
 
@@ -52,6 +54,8 @@ namespace cmPSO
         void setFitness(double fitness);
         void setFitnessFunction(double (*fitnessFunction)(void *) = NULL);
         void setBestGlobalPosition(double *position);
+        void setPosition(double *position);
+        void setPrecision(double precision = 15.0);
 
         void initWeights(double iW, double cW, double sW);
         void initPosition(double *position = NULL, double minP = -1.0, double maxP = 1.0);
@@ -70,6 +74,7 @@ namespace cmPSO
     class Swarm
     {
     private:
+    double _precision = 15.0;
         size_t _id;
         size_t _population;
         size_t _dimension = 0;
@@ -81,7 +86,7 @@ namespace cmPSO
         double *_position = NULL;
         double *_velocity = NULL;
         double *_bestPosition = NULL;
-        double _bestFitness;
+        double _bestFitness = -9999999999.99999;
 
         void updateBest();
         void setBestPosition(double *bestPosition, bool reallocate = false);
@@ -103,9 +108,12 @@ namespace cmPSO
         void initWeights(double iW, double cW, double sW);
         void initPosition(double *position = NULL, double minP = -1.0, double maxP = 1.0);
         void initVelocity(double *velocity = NULL, double minV = -0.05, double maxV = 0.05);
+        void setParticlePosition(size_t particle, double *position);
+        void setPrecision(double precision = 15.0);
 
         double *getBestPosition();
         double getBestFitness();
+        double *getParticlePosition(size_t paricle);
         size_t getBestParticle();
 
         void compute(size_t maxThreads = 1);

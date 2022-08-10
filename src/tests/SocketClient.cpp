@@ -1,68 +1,110 @@
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/client.hpp>
 
-#define MAX 80
-#define PORT 8080
-#define SA struct sockaddr
+#include <iostream>
 
-void func(int sockfd)
+typedef websocketpp::client<websocketpp::config::asio_client> client;
+
+using websocketpp::lib::bind;
+using websocketpp::lib::placeholders::_1;
+using websocketpp::lib::placeholders::_2;
+
+typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
+
+void on_message(client *c, websocketpp::connection_hdl hdl, message_ptr msg)
 {
-	char buff[MAX];
-	int n;
-	for (;;) {
-		bzero(buff, sizeof(buff));
-		printf("Enter the string : ");
-		n = 0;
-		while ((buff[n++] = getchar()) != '\n')
-			;
-		write(sockfd, buff, sizeof(buff));
-		bzero(buff, sizeof(buff));
-		read(sockfd, buff, sizeof(buff));
-		printf("From Server : %s", buff);
-		if ((strncmp(buff, "exit", 4)) == 0) {
-			printf("Client Exit...\n");
-			break;
+	std::cout << "on_message called with hdl: " << hdl.lock().get()
+			  << " and message: " << msg->get_payload()
+			  << std::endl;
+
+	websocketpp::lib::error_code ec;
+
+	c->send(hdl, msg->get_payload(), msg->get_opcode(), ec);
+	if (ec)
+	{
+		std::cout << "Echo failed because: " << ec.message() << std::endl;
+	}
+}
+
+bool connected = false;
+void on_open(websocketpp::connection_hdl hdl)
+{
+	printf("Connected Weeeee\n");
+	connected = true;
+}
+
+void *clientThread(void *params)
+{
+	client *myClient = (client *)params;
+
+	myClient->run();
+
+	return NULL;
+}
+
+int main(int argc, char *argv[])
+{
+	client myClient;
+	client::connection_ptr connection;
+
+	std::string uri = "ws://localhost:9002";
+
+	if (argc == 2)
+	{
+		uri = argv[1];
+	}
+
+	try
+	{
+		pthread_attr_t attr;
+		pthread_t thread;
+
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+		myClient.set_access_channels(websocketpp::log::alevel::all);
+		myClient.clear_access_channels(websocketpp::log::alevel::frame_payload);
+		myClient.init_asio();
+		myClient.set_message_handler(bind(&on_message, &myClient, ::_1, ::_2));
+		// myClient.set_open_handler(bind(&on_open, &myClient, ::_1, ::_2));
+		myClient.set_open_handler(&on_open);
+
+		websocketpp::lib::error_code ec;
+		connection = myClient.get_connection(uri, ec);
+		if (ec)
+		{
+			std::cout << "could not create connection because: " << ec.message() << std::endl;
+			return 0;
+		}
+
+		myClient.connect(connection);
+
+		int rc = pthread_create(&thread, &attr, &clientThread, (void *)&myClient);
+		if (rc)
+		{
+			printf("[ERROR] Couln't initialize WebSocket client.\n");
+			exit(-1);
 		}
 	}
-}
-
-int main()
-{
-	int sockfd, connfd;
-	struct sockaddr_in servaddr, cli;
-
-	// socket create and verification
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd == -1) {
-		printf("socket creation failed...\n");
-		exit(0);
+	catch (websocketpp::exception const &e)
+	{
+		std::cout << e.what() << std::endl;
 	}
-	else
-		printf("Socket successfully created..\n");
-	bzero(&servaddr, sizeof(servaddr));
 
-	// assign IP, PORT
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	servaddr.sin_port = htons(PORT);
+	bool sent = false;
+	while (1)
+	{
+		if (!sent && connected)
+		{
+			websocketpp::lib::error_code ec;
+			std::string msg = "Hello";
+			// message_ptr msg;
+			// msg->append_payload("A payload");
+			myClient.send(connection->get_handle(), msg, websocketpp::frame::opcode::text, ec);
 
-	// connect the client socket to server socket
-	if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-		printf("connection with the server failed...\n");
-		exit(0);
+			sent = true;
+		}
 	}
-	else
-		printf("connected to the server..\n");
 
-	// function for chat
-	func(sockfd);
-
-	// close the socket
-	close(sockfd);
+	return 0;
 }
-
