@@ -56,6 +56,7 @@ namespace cmPSO
         void setBestGlobalPosition(double *position);
         void setPosition(double *position);
         void setPrecision(double precision = 15.0);
+        void shakeParticle();
 
         void initWeights(double iW, double cW, double sW);
         void initPosition(double *position = NULL, double minP = -1.0, double maxP = 1.0);
@@ -74,7 +75,7 @@ namespace cmPSO
     class Swarm
     {
     private:
-    double _precision = 15.0;
+        double _precision = 15.0;
         size_t _id;
         size_t _population;
         size_t _dimension = 0;
@@ -110,6 +111,7 @@ namespace cmPSO
         void initVelocity(double *velocity = NULL, double minV = -0.05, double maxV = 0.05);
         void setParticlePosition(size_t particle, double *position);
         void setPrecision(double precision = 15.0);
+        void shakeSwarm();
 
         double *getBestPosition();
         double getBestFitness();

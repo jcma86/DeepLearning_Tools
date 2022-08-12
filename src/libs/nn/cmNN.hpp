@@ -36,6 +36,7 @@ namespace cmNN
         size_t _nW = 0;
         size_t _nE = 0;
         bool _isActive = true;
+        bool _isLastLayer = false;
         double *_inputs = NULL;
         double *_extraInputs = NULL;
         double _output = 0;
@@ -52,11 +53,12 @@ namespace cmNN
         void createNeuron(size_t index, size_t nInputs);
         void setInputs(double *inputs);                                                        // Size and Pointer to the first element of inputs array.
         void setExtraInputs(size_t n, double *inputs);                                         // Size and Pointer to the first element of extra inputs array.
-        void setWeights(double *weights);                                                      // Size and Pointer to the first element of weights array.
+        void setWeights(double *weights, bool isLastLayer = false);                            // Size and Pointer to the first element of weights array.
         void setActivationFunction(double (*_activationFunction)(double), const char *fxName); // Pointer to activation function.
         void setActivationFunction(const char *fxName);                                        // Pointer to activation function.
         void setActivationFunction(NN_ACTIVATION_FX fxName);                                   // Pointer to activation function.
         void setIsActive(bool isActive = true);
+        bool isActive();
 
         size_t weightsNeeded();
 

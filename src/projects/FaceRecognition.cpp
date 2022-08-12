@@ -142,12 +142,13 @@ int main(int argc, char **argv)
     string nnconfigpath;
     bool setpso = false;
     bool loadNNConfig = false;
-    desc.add_options()("help", "Lists valid options.")("loadNNConfig", po::value<string>(), "Opens NN configuration from file.")("setParticlePosition", po::value<size_t>(), "")("swarmSize", po::value<int>(), "")("psoMinVel", po::value<double>(), "")("psoMaxVel", po::value<double>(), "")("psoMinPos", po::value<double>(), "")("psoMaxPos", po::value<double>(), "");
+    desc.add_options()("help", "Lists valid options.")("loadNNConfig", po::value<string>(), "Opens NN configuration from file.")("setParticlePosition", po::value<size_t>(), "")("swarmSize", po::value<int>(), "")("psoMinVel", po::value<double>(), "")("psoMaxVel", po::value<double>(), "")("psoMinPos", po::value<double>(), "")("psoMaxPos", po::value<double>(), "")("psoThreads", po::value<int>(), "");
 
     double minPos = -10.0;
     double maxPos = -10.0;
     double minVel = -0.5;
     double maxVel = -0.5;
+    int psoThreads = 15;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
@@ -187,6 +188,10 @@ int main(int argc, char **argv)
     if (vm.count("psoMaxPos"))
     {
         maxPos = vm["psoMaxPos"].as<double>();
+    }
+    if (vm.count("psoThreads"))
+    {
+        psoThreads = vm["psoThreads"].as<int>();
     }
 
     fstream file;
@@ -271,9 +276,10 @@ int main(int argc, char **argv)
     pso.setPrecision(15);
     /* PSO CREATION - END */
 
+    int shakeCountdown = 20;
     for (int g = 0; g < 1000; g += 1)
     {
-        pso.compute(15);
+        pso.compute(psoThreads);
         printf("\r%4d - Best fitness: %.15lf (p: %ld)\n", g, pso.getBestFitness(), pso.getBestParticle());
         if (lastBest != pso.getBestFitness())
         {
@@ -283,9 +289,18 @@ int main(int argc, char **argv)
             string path = "bests/" + stream.str() + ".txt";
 
             NeuralNetwork::saveToFile(path.c_str(), pso.getBestPosition(), &nnConfig);
+            shakeCountdown = 20;
         }
+        else
+            shakeCountdown -= 1;
 
-        pso.evolve();
+        if (shakeCountdown == 0)
+        {
+            pso.shakeSwarm();
+            shakeCountdown = 20;
+        }
+        else
+            pso.evolve();
 
         // char key = (char)waitKey(1);
         // if (key == 27)

@@ -131,6 +131,16 @@ void Particle::setFitnessFunction(double (*fitnessFunction)(void *))
     _fitnessFunction = fitnessFunction;
 }
 
+void Particle::shakeParticle()
+{
+    uniform_real_distribution<double> unif(_minP, _maxP);
+    random_device rd;
+    mt19937 gen(rd());
+
+    for (size_t d = 0; d < _dimension; d += 1)
+        _position[d] = floor(unif(gen) * _precisionMult) / _precisionMult;
+}
+
 void Particle::compute()
 {
     psoFitnessFxParams params;
@@ -240,6 +250,12 @@ void Swarm::setFitnessFunction(double (*fitnessFunction)(void *))
 {
     for (size_t p = 0; p < _population; p += 1)
         _particle[p].setFitnessFunction(fitnessFunction);
+}
+
+void Swarm::shakeSwarm()
+{
+    for (size_t p = 0; p < _population; p += 1)
+        _particle[p].shakeParticle();
 }
 
 size_t Swarm::createSwarm(size_t population, size_t dimension, bool maximize)

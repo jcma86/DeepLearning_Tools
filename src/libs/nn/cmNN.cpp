@@ -11,12 +11,12 @@ void Neuron::createNeuron(size_t index, size_t nInputs)
 {
     sprintf(_id, "n:%ld", index);
     _nI = nInputs;
-    _nW = nInputs + 1;
+    _nW = nInputs + 2;
 }
 
 bool Neuron::isReady()
 {
-    bool ready = _nI > 0 && (_nI + _nE + 1) == _nW && _inputs != NULL && _weights != NULL && _activationFunction != NULL;
+    bool ready = _nI > 0 && (_nI + _nE + 2) == _nW && _inputs != NULL && _weights != NULL && _activationFunction != NULL;
 
     // printf("Here: %d %d %d %d %d\n", _nI > 0, (_nI + _nE + 1) == _nW, _inputs != NULL, _weights != NULL, _activationFunction != NULL);
 
@@ -26,13 +26,20 @@ bool Neuron::isReady()
     return ready;
 }
 
+bool Neuron::isActive()
+{
+    return _isActive;
+}
+
 void Neuron::setInputs(double *inputs)
 {
     _inputs = inputs;
 }
 
-void Neuron::setWeights(double *weights)
+void Neuron::setWeights(double *weights, bool isLastLayer)
 {
+    _isLastLayer = isLastLayer;
+    _isActive = weights[_nW - 1] > 0.0 || _isLastLayer ? true : false;
     _weights = weights;
 }
 
@@ -67,12 +74,12 @@ void Neuron::setIsActive(bool isActive)
 
 size_t Neuron::weightsNeeded()
 {
-    return (_nI + _nE + 1);
+    return (_nI + _nE + 2); // bias and isActive that's why +2
 }
 
 double Neuron::compute(bool softmax)
 {
-    if (!isReady() || !_isActive)
+    if (!isReady() || !isActive())
         return 0.0;
 
     _output = 0.0;
@@ -82,7 +89,7 @@ double Neuron::compute(bool softmax)
     for (size_t j = 0; j < _nE; j += 1, i += 1)
         _output += (_extraInputs[j] * _weights[i]);
 
-    _output += _weights[_nW - 1];
+    _output += _weights[_nW - 2];
     _output = _activationFunction(_output);
 
     if (softmax)
@@ -144,7 +151,7 @@ void Layer::setInputs(double *inputs)
 void Layer::setWeights(double *weights)
 {
     _weights = weights;
-    size_t wpn = _nI + _nE + 1;
+    size_t wpn = _nI + _nE + 2; // bias and isActivee that's why +2;
     for (size_t i = 0; i < _n; i += 1)
         _neuron[i].setWeights(&_weights[i * wpn]);
 }
@@ -190,31 +197,47 @@ double *Layer::compute(Normalization norm, bool softMax)
     double min = MAXFLOAT;
     double max = -MAXFLOAT;
 
+    size_t activeNeurons = 0;
     for (size_t i = 0; i < _n; i += 1)
     {
+        if (!_neuron[i].isActive())
+        {
+            _output[i] = 0.0;
+            continue;
+        }
+
         _output[i] = _neuron[i].compute(softMax);
         min = _output[i] < min ? _output[i] : min;
         max = _output[i] > max ? _output[i] : max;
         add += _output[i];
+        activeNeurons += 1;
     }
 
     if (norm == MIN_MAX && _n > 1)
     {
         double diff = max - min;
         for (size_t i = 0; i < _n; i += 1)
-            _output[i] = (_output[i] - min) / diff;
+            _output[i] = _neuron[i].isActive() ? (_output[i] - min) / diff : 0.0;
     }
 
     if (norm == Z_SCORE)
     {
-        double mean = add / _n;
+        double mean = add / activeNeurons;
         double sum = 0.0;
         for (size_t i = 0; i < _n; i += 1)
+        {
+            if (!_neuron[i].isActive())
+                continue;
             sum += (_output[i] - mean) * (_output[i] - mean);
+        }
 
         double standardDeviation = sqrt(sum / mean);
         for (size_t i = 0; i < _n; i += 1)
+        {
+            if (!_neuron[i].isActive())
+                continue;
             _output[i] = (_output[i] - mean) / standardDeviation;
+        }
     }
 
     if (softMax)
@@ -453,9 +476,9 @@ void NeuralNetwork::loadConfiguration(const char *filePath, NeuralNetworkConfigu
     }
     if (configOutput->nWeights == 0)
     {
-        configOutput->nWeights = (configOutput->nInputs + 1) * configOutput->neuronsPerLayer[0];
+        configOutput->nWeights = (configOutput->nInputs + 2) * configOutput->neuronsPerLayer[0];
         for (size_t l = 1; l < configOutput->nLayers; l += 1)
-            configOutput->nWeights += (configOutput->neuronsPerLayer[l - 1] + 1) * (configOutput->neuronsPerLayer[l]);
+            configOutput->nWeights += (configOutput->neuronsPerLayer[l - 1] + 2) * (configOutput->neuronsPerLayer[l]);
     }
     printf("NN configuration loaded.\n");
 
