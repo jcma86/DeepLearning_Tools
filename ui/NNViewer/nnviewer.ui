@@ -6,72 +6,168 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>462</width>
-    <height>625</height>
+    <width>550</width>
+    <height>600</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>550</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>550</width>
+    <height>600</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>NNViewer</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QGroupBox" name="groupBox">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <widget class="QGroupBox" name="groupNeuron">
     <property name="geometry">
      <rect>
-      <x>190</x>
+      <x>240</x>
       <y>80</y>
-      <width>261</width>
-      <height>391</height>
+      <width>301</width>
+      <height>491</height>
      </rect>
     </property>
     <property name="title">
      <string>Neuron</string>
     </property>
-   </widget>
-   <widget class="QGroupBox" name="groupBox_2">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>0</y>
-      <width>441</width>
-      <height>81</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Layer</string>
-    </property>
-    <widget class="QComboBox" name="comboBox">
+    <widget class="QTableWidget" name="tableWeights">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>90</y>
+       <width>281</width>
+       <height>391</height>
+      </rect>
+     </property>
+     <property name="columnCount">
+      <number>1</number>
+     </property>
+     <column/>
+    </widget>
+    <widget class="QCheckBox" name="chkIsActive">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>10</x>
        <y>30</y>
-       <width>131</width>
+       <width>85</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Is active?</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="cmbActFx">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>50</y>
+       <width>166</width>
        <height>41</height>
       </rect>
      </property>
     </widget>
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>121</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Activation function:</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="txtBias">
+     <property name="geometry">
+      <rect>
+       <x>135</x>
+       <y>30</y>
+       <width>156</width>
+       <height>21</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>30</y>
+       <width>31</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Bias:</string>
+     </property>
+    </widget>
    </widget>
-   <widget class="QListView" name="listView">
+   <widget class="QGroupBox" name="groupLayer">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>91</y>
-      <width>171</width>
-      <height>381</height>
+      <y>0</y>
+      <width>531</width>
+      <height>81</height>
      </rect>
+    </property>
+    <property name="title">
+     <string>Info</string>
     </property>
    </widget>
-   <widget class="QLabel" name="lblSomething">
+   <widget class="QTreeWidget" name="treeNN">
     <property name="geometry">
      <rect>
-      <x>110</x>
-      <y>490</y>
-      <width>121</width>
-      <height>31</height>
+      <x>10</x>
+      <y>100</y>
+      <width>221</width>
+      <height>471</height>
      </rect>
     </property>
-    <property name="text">
-     <string>TextLabel</string>
+    <property name="indentation">
+     <number>10</number>
     </property>
+    <property name="columnCount">
+     <number>2</number>
+    </property>
+    <column>
+     <property name="text">
+      <string notr="true">1</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string notr="true">2</string>
+     </property>
+    </column>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -79,7 +175,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>462</width>
+     <width>550</width>
      <height>24</height>
     </rect>
    </property>
@@ -90,7 +186,6 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>
