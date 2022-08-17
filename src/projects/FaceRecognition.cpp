@@ -77,9 +77,9 @@ double trainNN(void* psoParams) {
   nn.createNeuronNetwork(nnConfig.nInputs, nnConfig.nLayers,
                          nnConfig.neuronsPerLayer);
   nn.setWeightsRange(params->min, params->max);
-  // nn.setActivationFunction(&fxs);
   nn.setWeights(params->position);
   nn.setInputs(NULL);
+  nn.setLayerActivationFunction(nnConfig.nLayers - 1, "fxSigmoid");
 
   // for (size_t d = 0; d < params->nDimensions; d += 1)
   //     fitness += params->position[d];

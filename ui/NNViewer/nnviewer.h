@@ -26,6 +26,8 @@ class NNViewer : public QMainWindow {
 
   void on_tableWeights_cellChanged(int row, int column);
 
+  void on_btnDeleteNeuron_clicked();
+
  private:
   Ui::NNViewer* ui;
   cmNN::NeuralNetworkConfiguration config;
@@ -41,11 +43,10 @@ class NNViewer : public QMainWindow {
                           size_t dim,
                           double* data);
   void nnTreeUpdateChildNode(size_t layer, size_t neuron);
-
+  cmNN::NeuralNetworkConfiguration deleteNeuron(size_t layer, size_t neuron);
   size_t getNumOfWeightsForNeuron(size_t layer, size_t neuron);
   size_t getIndexFirstWeightForNeuron(size_t layer, size_t neuron);
   bool isNeuronActive(size_t layer, size_t neuron);
-
   void setIsNeuronActive(size_t layer, size_t neuron, bool isActive);
   void setNeuronWeight(size_t layer,
                        size_t neuron,
@@ -58,5 +59,6 @@ class NNViewer : public QMainWindow {
   void populateLayerDetails(size_t layer);
   void populateNeuronDetails(size_t layer, size_t neuron);
   void openNNConfigFile();
+  void saveNNConfigFile();
 };
 #endif  // NNVIEWER_H

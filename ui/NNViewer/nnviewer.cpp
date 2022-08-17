@@ -26,8 +26,52 @@ NNViewer::~NNViewer() {
 void NNViewer::populateMainMenu() {
   QMenu* fileMenu = ui->menubar->addMenu("File");
   QAction* openNNConfigAction = fileMenu->addAction("Open NN config file...");
+  QAction* saveNNConfigAction = fileMenu->addAction("Save NN config file...");
   connect(openNNConfigAction, &QAction::triggered, this,
           &NNViewer::openNNConfigFile);
+
+  connect(saveNNConfigAction, &QAction::triggered, this,
+          &NNViewer::saveNNConfigFile);
+}
+
+cmNN::NeuralNetworkConfiguration NNViewer::deleteNeuron(size_t layer,
+                                                        size_t neuron) {
+  cmNN::NeuralNetworkConfiguration newConfig;
+
+  newConfig.nLayers = config.nLayers;
+  newConfig.maxW = config.maxW;
+  newConfig.minW = config.minW;
+  newConfig.nInputs = config.nInputs;
+  newConfig.neuronsPerLayer = new size_t[config.nLayers];
+
+  for (size_t l = 0; l < config.nLayers; l += 1) {
+    size_t tn = config.neuronsPerLayer[l];
+    tn = l == layer ? tn - 1 : tn;
+    newConfig.neuronsPerLayer[l] = tn;
+  }
+
+  size_t numW = cmNN::NeuralNetwork::calculateNumberOfWeights(&newConfig);
+  newConfig.nWeights = numW;
+  newConfig.weights = new double[numW];
+
+  size_t w = 0;
+  for (size_t l = 0; l < config.nLayers; l += 1) {
+    for (size_t n = 0; n < config.neuronsPerLayer[l]; n += 1) {
+      if (l == layer && n == neuron)
+        continue;
+      size_t wfn = getNumOfWeightsForNeuron(l, n);
+      size_t index = getIndexFirstWeightForNeuron(l, n);
+      double* oldW = &config.weights[index];
+      for (size_t cw = 0; cw < wfn; cw += 1) {
+        if (l == layer + 1 && cw == neuron)
+          continue;
+        newConfig.weights[w] = oldW[cw];
+        w += 1;
+      }
+    }
+  }
+
+  return newConfig;
 }
 
 size_t NNViewer::getNumOfWeightsForNeuron(size_t layer, size_t neuron) {
@@ -43,10 +87,13 @@ size_t NNViewer::getIndexFirstWeightForNeuron(size_t layer, size_t neuron) {
 
   size_t offset = 0;
   for (size_t l = 0; l < layer; l += 1) {
-    size_t prev = getNumOfWeightsForNeuron(layer, neuron);
-    offset += config.neuronsPerLayer[l] * (prev + 3);
+    size_t prev = getNumOfWeightsForNeuron(l, 0);
+    offset += config.neuronsPerLayer[l] * prev;
   }
-  offset += neuron * nWeigths;
+
+  offset += (neuron * nWeigths);
+
+  qDebug() << "Offset: " << QString::number(nWeigths);
 
   return offset;
 }
@@ -146,6 +193,11 @@ void NNViewer::openNNConfigFile() {
   populateCmbActivationFx();
 }
 
+void NNViewer::saveNNConfigFile() {
+  QString filePath = QFileDialog::getSaveFileName(this, "Save NN config file");
+  qDebug() << filePath;
+}
+
 void NNViewer::nnTreeAddRootNode(size_t layer,
                                  QString name,
                                  QString description) {
@@ -222,4 +274,10 @@ void NNViewer::on_tableWeights_cellChanged(int row, int column) {
 
   QTableWidgetItem* r = ui->tableWeights->item(row, column);
   setNeuronWeight(cLayer, cNeuron, row, r->text());
+}
+
+void NNViewer::on_btnDeleteNeuron_clicked() {
+  config = deleteNeuron(cLayer, cNeuron);
+  populateNNTree();
+  populateCmbActivationFx();
 }

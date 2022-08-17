@@ -56,8 +56,6 @@ void Neuron::setExtraInputs(size_t n, double* inputs) {
 }
 
 void Neuron::setActivationFunction(double w) {
-  // strcpy(_actFxName, getActivationFunctionName(fxIndex));
-  // _activationFunction =
   setActivationFunction(cmNN::getActivationFunctionName(w, _minW, _maxW));
 }
 
@@ -183,6 +181,14 @@ void Layer::setActivationFunction(const char* fxName) {
 void Layer::setActivationFunction(NN_ACTIVATION_FX fxName) {
   for (size_t i = 0; i < _n; i += 1)
     _neuron[i].setActivationFunction(fxName);
+}
+
+void Layer::setNeuronActivationFunction(size_t neuron, NN_ACTIVATION_FX fx) {
+  _neuron[neuron].setActivationFunction(fx);
+}
+
+void Layer::setNeuronActivationFunction(size_t neuron, const char* fx) {
+  _neuron[neuron].setActivationFunction(fx);
 }
 
 size_t Layer::weightsNeeded() {
@@ -311,6 +317,27 @@ void NeuralNetwork::setActivationFunction(char*** fxNames) {
   }
 }
 
+void NeuralNetwork::setLayerActivationFunction(size_t layer, const char* fx) {
+  _layer[layer].setActivationFunction(fx);
+}
+
+void NeuralNetwork::setLayerActivationFunction(size_t layer,
+                                               NN_ACTIVATION_FX fx) {
+  _layer[layer].setActivationFunction(fx);
+}
+
+void NeuralNetwork::setNeuronActivationFunction(size_t layer,
+                                                size_t neuron,
+                                                NN_ACTIVATION_FX fx) {
+  _layer[layer].setNeuronActivationFunction(neuron, fx);
+}
+
+void NeuralNetwork::setNeuronActivationFunction(size_t layer,
+                                                size_t neuron,
+                                                const char* fx) {
+  _layer[layer].setNeuronActivationFunction(neuron, fx);
+}
+
 size_t NeuralNetwork::getWeightsNeeded() {
   return _nW;
 }
@@ -392,6 +419,19 @@ void NeuralNetwork::saveToFile(const char* path,
   }
 
   file.close();
+}
+
+size_t NeuralNetwork::calculateNumberOfWeights(
+    NeuralNetworkConfiguration* config) {
+  size_t w = 0;
+  for (size_t l = 0; l < config->nLayers; l += 1) {
+    if (l == 0)
+      w += (config->nInputs + 3) * config->neuronsPerLayer[l];
+    else
+      w += (config->neuronsPerLayer[l - 1] + 3) * config->neuronsPerLayer[l];
+  }
+
+  return w;
 }
 
 void NeuralNetwork::loadConfiguration(

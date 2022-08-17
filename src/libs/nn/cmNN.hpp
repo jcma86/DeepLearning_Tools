@@ -31,6 +31,7 @@ class Neuron {
   size_t _nE = 0;
   bool _isActive = true;
   bool _isLastLayer = false;
+  bool _forceFx = false;
   double* _inputs = NULL;
   double* _extraInputs = NULL;
   double _output = 0;
@@ -104,6 +105,8 @@ class Layer {
   void setActivationFunction(const char* fxName);
   void setActivationFunction(NN_ACTIVATION_FX fxName);
   void setExtraInputs(size_t nExtraInputs, double* extraInputs);
+  void setNeuronActivationFunction(size_t neuron, NN_ACTIVATION_FX fx);
+  void setNeuronActivationFunction(size_t neuron, const char* fx);
 
   size_t weightsNeeded();
 
@@ -142,6 +145,13 @@ class NeuralNetwork {
   void setWeightsRange(double min, double max);
   void setActivationFunction(char*** fxNames);
 
+  void setLayerActivationFunction(size_t layer, const char* fx);
+  void setLayerActivationFunction(size_t layer, NN_ACTIVATION_FX fx);
+  void setNeuronActivationFunction(size_t layer, size_t neuron, const char* fx);
+  void setNeuronActivationFunction(size_t layer,
+                                   size_t neuron,
+                                   NN_ACTIVATION_FX fx);
+
   size_t getWeightsNeeded();
 
   double* compute(Normalization norm = NONE, bool softMax = false);
@@ -156,6 +166,8 @@ class NeuralNetwork {
   static void saveToFile(const char* path,
                          double* weights,
                          NeuralNetworkConfiguration* config);
+
+  static size_t calculateNumberOfWeights(NeuralNetworkConfiguration* config);
 };
 };  // namespace cmNN
 
