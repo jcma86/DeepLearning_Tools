@@ -384,6 +384,8 @@ void NeuralNetwork::saveToFile(const char* path, double* weights) {
     file << setprecision(15) << _neuronsPerLayer[l]
          << ((l == _nLayers - 1) ? "\n" : ",");
   file << "NUM_INPUTS:" << _nI << "\n";
+  file << "MIN_THRESHOLD:0.9\n";
+  file << "SOFT_MAX:0\n";
   file << "MIN_WEIGHT:" << _minW << "\n";
   file << "MAX_WEIGHT:" << _maxW << "\n";
   file << "NUM_WEIGHTS:" << _nW << "\n";
@@ -408,6 +410,8 @@ void NeuralNetwork::saveToFile(const char* path,
     file << setprecision(15) << config->neuronsPerLayer[l]
          << ((l == config->nLayers - 1) ? "\n" : ",");
   file << "NUM_INPUTS:" << config->nInputs << "\n";
+  file << "MIN_THRESHOLD:" << config->minThreshold << "\n";
+  file << "SOFT_MAX:" << config->softMax << "\n";
   file << "MIN_WEIGHT:" << config->minW << "\n";
   file << "MAX_WEIGHT:" << config->maxW << "\n";
   file << "NUM_WEIGHTS:" << config->nWeights << "\n";
@@ -450,11 +454,13 @@ void NeuralNetwork::loadConfiguration(
   configOutput->neuronsPerLayer = NULL;
   configOutput->nExtraInputs = 0;
   configOutput->nInputs = 0;
+  configOutput->minThreshold = 0.9;
   configOutput->nLayers = 0;
   configOutput->nWeights = 0;
   configOutput->minW = -1.0;
   configOutput->maxW = 1.0;
   configOutput->weights = NULL;
+  configOutput->softMax = false;
 
   char tokenProp = ':';
   char tokenVal = ',';
@@ -480,6 +486,12 @@ void NeuralNetwork::loadConfiguration(
       } else if (prop.compare("NUM_INPUTS") == 0) {
         stringstream sstream(line);
         sstream >> configOutput->nInputs;
+      } else if (prop.compare("MIN_THRESHOLD") == 0) {
+        stringstream sstream(line);
+        sstream >> configOutput->minThreshold;
+      } else if (prop.compare("SOFT_MAX") == 0) {
+        stringstream sstream(line);
+        sstream >> configOutput->softMax;
       } else if (prop.compare("MIN_WEIGHT") == 0) {
         stringstream sstream(line);
         sstream >> configOutput->minW;

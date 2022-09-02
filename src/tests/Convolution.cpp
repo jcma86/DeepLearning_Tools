@@ -1,66 +1,87 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <iostream>
 
-int main()
-{
-    double _input[16] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-    double _kernel[9] = {1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
+#include <boost/program_options/option.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <boost/program_options/variables_map.hpp>
 
-    int dStart = 1 / 2;
-    int wStart = 3 / 2;
-    int hStart = 3 / 2;
+#include "../libs/cmDeepLearning.hpp"
 
-    size_t _inD = 1;
-    size_t _inW = 4;
-    size_t _inH = 4;
-    size_t _kD = 1;
-    size_t _kW = 3;
-    size_t _kH = 3;
-    size_t _stride = 1;
-    size_t outW = 2;
-    size_t outC = 1;
+using namespace std;
+using namespace cmCNN;
+namespace po = boost::program_options;
 
-    double *_output = new double[4];
+CNeuralNetworkConfiguration cnnConfig;
+int main(int argc, char** argv) {
+  po::options_description desc("Allowed options");
+  string cnnconfigpath;
+  bool setpso = false;
+  bool loadNNConfig = false;
+  desc.add_options()("help", "Lists valid options.")(
+      "load-cnn-config", po::value<string>(),
+      "Opens CNN configuration from file.");
 
-    for (int indexD = dStart; indexD < (int)(_inD - dStart); indexD += _stride)
-    {
-        for (int indexH = hStart; indexH < (_inH - hStart); indexH += _stride)
-        {
-            for (int indexW = wStart; indexW < (_inW - wStart); indexW += _stride)
-            {
-                int outIndex = outC * ((outW * (indexH - hStart)) + (indexW - wStart)) + (indexD - dStart);
-                _output[outIndex] = 0.0;
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
 
-                for (int indexKD = -dStart; indexKD < (int)(_kD - dStart); indexKD += _stride)
-                {
-                    for (int indexKH = -hStart; indexKH < (int)(_kH - hStart); indexKH += _stride)
-                    {
-                        for (int indexKW = -wStart; indexKW < (int)(_kW - wStart); indexKW += _stride)
-                        {
-                            int indIn = _inD * ((_inW * (indexH + indexKH)) + (indexW + indexKW)) + (indexD + indexKD);
-                            int indKe = _kD * ((_kW * (indexKH + hStart)) + (indexKW + wStart)) + (indexKD + dStart);
+  if (vm.count("help")) {
+    cout << desc << "\n";
+    return 1;
+  }
+  if (vm.count("load-cnn-config")) {
+    cnnconfigpath = vm["load-cnn-config"].as<string>();
+    loadNNConfig = true;
+  }
 
-                            _output[outIndex] += _kernel[indKe] * _input[indIn];
-                        }
-                    }
-                }
-            }
-        }
+  CNeuralNetwork::loadConfiguration(cnnconfigpath.c_str(), &cnnConfig);
+  CNeuralNetwork m;
+  m.createCNeuronNetwork(&cnnConfig);
+
+  size_t inSize =
+      cnnConfig.inputSize.d * cnnConfig.inputSize.w * cnnConfig.inputSize.h;
+  double* input = new double[inSize];
+
+  for (size_t i = 0; i < inSize; i += 1) {
+    input[i] = 2.0 / (i + 1);
+  }
+
+  m.setInputs(input);
+  m.setKernels(cnnConfig.params);
+  m.compute();
+
+  CNeuronDataSize s = m.getOutputSize();
+
+  size_t i = 0;
+  for (size_t d = 0; d < cnnConfig.inputSize.d; d += 1) {
+    for (size_t h = 0; h < cnnConfig.inputSize.h; h += 1) {
+      printf("\n");
+      for (size_t w = 0; w < cnnConfig.inputSize.w; w += 1) {
+        printf("   %2.3lf", input[i]);
+        i += 1;
+      }
     }
+  }
 
-    int p = 0;
-    printf("\n");
-    for (int i = 0; i < 2; i += 1)
-    {
-        for (int j = 0; j < 2; j += 1)
-        {
-            printf("%+.3lf   ", _output[p]);
-            p += 1;
-        }
-        printf("\n");
+  i = 0;
+  printf("\n");
+  printf("\n");
+  double* nno = m.getOuput();
+  for (size_t d = 0; d < s.d; d += 1) {
+    for (size_t h = 0; h < s.h; h += 1) {
+      printf("\n");
+      for (size_t w = 0; w < s.w; w += 1) {
+        printf("   %2.3lf", nno[i]);
+        i += 1;
+      }
     }
+  }
 
-    delete[] _output;
+  printf("\n\n");
 
-    return 0;
+  delete[] input;
+
+  return 0;
 }

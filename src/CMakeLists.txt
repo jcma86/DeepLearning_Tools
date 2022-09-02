@@ -15,6 +15,7 @@ find_package(Boost COMPONENTS program_options REQUIRED)
 add_library(cmHelper STATIC ./libs/helper/cmHelper.cpp)
 add_library(cmActivationFunction STATIC ./libs/nn/cmActivationFunction.cpp)
 add_library(cmNN STATIC ./libs/nn/cmNN.cpp)
+add_library(cmCNN STATIC ./libs/cnn/cmCNN.cpp)
 add_library(cmPSO STATIC ./libs/pso/cmPSO.cpp)
 
 target_link_libraries(${cmNN} cmActivationFunction)
@@ -47,7 +48,7 @@ target_link_libraries(${TEST_VideoInput} m ${OpenCV_LIBS})
 
 set(TEST_Convolution ConvolutionTest)
 add_executable(${TEST_Convolution} tests/Convolution.cpp)
-target_link_libraries(${TEST_Convolution} m)
+target_link_libraries(${TEST_Convolution} m cmCNN Boost::program_options)
 
 set(TEST_SocketServer SocketServerTest)
 add_executable(${TEST_SocketServer} tests/SocketServer.cpp)

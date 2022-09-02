@@ -74,6 +74,23 @@ cmNN::NeuralNetworkConfiguration NNViewer::deleteNeuron(size_t layer,
   return newConfig;
 }
 
+void NNViewer::deleteInactiveNeurons(size_t layer) {
+  bool finished = false;
+  while (!finished) {
+    finished = true;
+    cmNN::NeuralNetworkConfiguration newConf;
+    for (size_t n = 0; n < config.neuronsPerLayer[layer]; n += 1) {
+      if (!isNeuronActive(layer, n)) {
+        finished = false;
+        newConf = deleteNeuron(layer, n);
+        break;
+      }
+    }
+    if (!finished)
+      config = newConf;
+  }
+}
+
 size_t NNViewer::getNumOfWeightsForNeuron(size_t layer, size_t neuron) {
   size_t nWeigths =
       layer == 0 ? config.nInputs : config.neuronsPerLayer[layer - 1];
@@ -92,8 +109,6 @@ size_t NNViewer::getIndexFirstWeightForNeuron(size_t layer, size_t neuron) {
   }
 
   offset += (neuron * nWeigths);
-
-  qDebug() << "Offset: " << QString::number(nWeigths);
 
   return offset;
 }
@@ -156,7 +171,16 @@ void NNViewer::populateLayerDetails(size_t layer) {
     return;
 
   cLayer = layer;
-  qDebug() << "Populating layer: " << QString::number(layer);
+  ui->lblLayer->setText("Layer: " + QString::number(cLayer));
+  ui->lblNeurons->setText("Neurons: " +
+                          QString::number(config.neuronsPerLayer[cLayer]));
+  size_t active = 0;
+  for (size_t n = 0; n < config.neuronsPerLayer[cLayer]; n += 1)
+    active += isNeuronActive(cLayer, n) ? 1 : 0;
+  ui->lblActiveNeurons->setText("Active neurons: " + QString::number(active));
+  ui->lblInactiveNeurons->setText(
+      "Inactive neurons: " +
+      QString::number(config.neuronsPerLayer[cLayer] - active));
 }
 
 void NNViewer::populateNeuronDetails(size_t layer, size_t neuron) {
@@ -195,7 +219,8 @@ void NNViewer::openNNConfigFile() {
 
 void NNViewer::saveNNConfigFile() {
   QString filePath = QFileDialog::getSaveFileName(this, "Save NN config file");
-  qDebug() << filePath;
+  cmNN::NeuralNetwork::saveToFile(filePath.toStdString().c_str(),
+                                  config.weights, &config);
 }
 
 void NNViewer::nnTreeAddRootNode(size_t layer,
@@ -277,7 +302,14 @@ void NNViewer::on_tableWeights_cellChanged(int row, int column) {
 }
 
 void NNViewer::on_btnDeleteNeuron_clicked() {
-  config = deleteNeuron(cLayer, cNeuron);
+  cmNN::NeuralNetworkConfiguration newConfig = deleteNeuron(cLayer, cNeuron);
+  config = newConfig;
+  populateNNTree();
+  populateCmbActivationFx();
+}
+
+void NNViewer::on_btnDelInactiveNeurons_clicked() {
+  deleteInactiveNeurons(cLayer);
   populateNNTree();
   populateCmbActivationFx();
 }

@@ -21,6 +21,8 @@ typedef struct {
   double* weights;
   double minW;
   double maxW;
+  double minThreshold;
+  bool softMax;
 } NeuralNetworkConfiguration;
 
 class Neuron {

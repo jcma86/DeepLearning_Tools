@@ -65,26 +65,12 @@ double trainNN(void* psoParams) {
   psoFitnessFxParams* params = (psoFitnessFxParams*)psoParams;
   double fitness = 0.0;
 
-  // char **fxs = new char *[nnConfig.nLayers];
-  // for (int l = 0; l < nnConfig.nLayers; l += 1)
-  // {
-  //     fxs[l] = new char[15];
-  //     strcpy(fxs[l], "fxLeakyReLU");
-  //     if (l == nnConfig.nLayers - 1)
-  //         strcpy(fxs[l], "fxSigmoid");
-  // }
-
   nn.createNeuronNetwork(nnConfig.nInputs, nnConfig.nLayers,
                          nnConfig.neuronsPerLayer);
   nn.setWeightsRange(params->min, params->max);
   nn.setWeights(params->position);
   nn.setInputs(NULL);
   nn.setLayerActivationFunction(nnConfig.nLayers - 1, "fxSigmoid");
-
-  // for (size_t d = 0; d < params->nDimensions; d += 1)
-  //     fitness += params->position[d];
-
-  // return fitness;
 
   size_t correctValid = 0;
   size_t incorrectValid = 0;
@@ -99,13 +85,11 @@ double trainNN(void* psoParams) {
       Face* face = &examples[e].faces[f];
       nn.setInputs(face->data, true);
 
-      nn.compute(Z_SCORE);
+      nn.compute(Z_SCORE, nnConfig.softMax);
       double* outNN = nn.getOutput();
       size_t outSize = nn.getOutputSize();
 
-      // printf("Output %ld: %.15lf\n", outSize, outNN[0]);
-
-      if (outNN[0] >= 0.9) {
+      if (outNN[0] >= nnConfig.minThreshold) {
         correctValid += face->invalid == 0 ? 1 : 0;
         incorrectInvalid += face->invalid == 1 ? 1 : 0;
       } else {
@@ -114,10 +98,6 @@ double trainNN(void* psoParams) {
       }
     }
   }
-
-  //   for (size_t l = 0; l < nnConfig.nLayers; l += 1)
-  //     delete[] fxs[l];
-  //   delete[] fxs;
 
   double a = (double)correctValid / (double)validFaces;
   double b = (double)correctInvalid / (double)invalidFaces;
@@ -246,6 +226,7 @@ int main(int argc, char** argv) {
 
   NeuralNetwork::loadConfiguration(nnconfigpath.c_str(), &nnConfig);
   printf("Weights needed: %ld\n", nnConfig.nWeights);
+  printf("SoftMax: %s\n", nnConfig.softMax ? "TRUE" : "FALSE");
 
   /* PSO CREATION - START */
   size_t swarmDim = pso.createSwarm(swarmSize, nnConfig.nWeights);

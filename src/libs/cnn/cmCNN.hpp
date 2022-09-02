@@ -1,56 +1,144 @@
 #ifndef __CM_LIBS_CNN__
 #define __CM_LIBS_CNN__
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
-namespace cmCNN
-{
-    class CNeuron
-    {
-    private:
-        double *_input = NULL;
-        char _activationFXName[50];
+using namespace std;
 
-        size_t _inW = 1;
-        size_t _inH = 1;
-        size_t _inD = 1;
+namespace cmCNN {
+typedef struct {
+  size_t w;
+  size_t h;
+  size_t d;
+  size_t stride;
+  size_t dilation;
+} CNeuronDataSize;
 
-        size_t _kW = 1;
-        size_t _kH = 1;
-        size_t _kD = 1;
-        size_t _l = 1;
+typedef struct {
+  size_t n;
+  CNeuronDataSize inputSize;
+  CNeuronDataSize kernelSize;
+} CLayerSize;
 
-        double *_kernel = NULL;
-        uint8_t _stride = 1;
-        uint8_t _maxPoolingSize = 1;
+typedef struct {
+  CNeuronDataSize inputSize;
+  size_t nParams;
 
-        double (*_activationFunction)(double) = NULL;
+  size_t nLayers;
+  CLayerSize* layerConfig;
 
-        double *_output = NULL;
+  double* params;
+} CNeuralNetworkConfiguration;
 
-        void releaseMemory();
-        bool isReady();
+class CNeuron {
+ private:
+  double* _input = NULL;
+  char _activationFXName[50];
 
-    public:
-        CNeuron() {}
-        ~CNeuron();
+  CNeuronDataSize _inSize;
+  CNeuronDataSize _kSize;
 
-        void setInput(double *input, size_t w = 1, size_t h = 1, size_t d = 1);
-        void setKernel(double *kernel, size_t w = 1, size_t h = 1, size_t d = 1, size_t l = 1);
-        void setStride(uint8_t stride);
-        void setMaxPoolingSize(uint8_t maxPoolSize);
-        void setActivationFunction(double (*_activationFunction)(double));
-        void init();
+  size_t _dilation = 1;
 
-        size_t getNumOfParamsNeeded();
-        size_t getOutputWidth();
-        size_t getOutputHeight();
-        size_t getOutputDepth();
-        double *getOutput();
+  double* _kernel = NULL;
+  size_t _stride = 1;
+  uint8_t _maxPoolingSize = 1;
 
-        void compute();
-    };
-}
+  double (*_activationFunction)(double) = NULL;
+
+  double* _output = NULL;
+
+  void releaseMemory();
+  bool isReady();
+
+ public:
+  CNeuron() {}
+  ~CNeuron();
+
+  void createCNeuron(CNeuronDataSize inputSize,
+                     CNeuronDataSize kernelSize,
+                     size_t stride = 1,
+                     size_t l = 1);
+  void setInput(double* input);
+  void setKernel(double* kernel);
+  void setMaxPoolingSize(uint8_t maxPoolSize);
+  void setActivationFunction(double (*_activationFunction)(double));
+  void init();
+
+  size_t getNumOfParamsNeeded();
+  size_t getOutputWidth();
+  size_t getOutputHeight();
+  size_t getOutputDepth();
+  double* getOutput();
+
+  double* compute();
+};
+
+class CLayer {
+ private:
+  size_t _id;
+  size_t _n;
+  CNeuronDataSize _inSize;
+  CNeuronDataSize _kSize;
+  size_t _stride = 1;
+  size_t _dilation = 1;
+  size_t _paramsNeeded = 0;
+
+  CNeuron* _cNeuron = NULL;
+  double* _input = NULL;
+  double* _kernels = NULL;
+  double* _output = NULL;
+
+  size_t _outD;
+  size_t _outH;
+  size_t _outW;
+
+ public:
+  CLayer(){};
+  ~CLayer();
+  void releaseMemory();
+  void createCLayer(size_t layerIndex,
+                    size_t numNeurons,
+                    CNeuronDataSize _inSize,
+                    CNeuronDataSize _kSize);
+  void setInputs(double* input);
+  void setKernels(double* kernels);
+  double* compute();
+  double* getOutput();
+
+  size_t getNumOfParamsNeeded();
+  size_t getOutputWidth();
+  size_t getOutputHeight();
+  size_t getOutputDepth();
+};
+
+class CNeuralNetwork {
+ private:
+  CNeuronDataSize _inSize;
+  size_t _nLayers = 0;
+  CLayer* _layer = NULL;
+
+  double* _kernels = NULL;
+  double* _input = NULL;
+
+  void releaseMemory();
+
+ public:
+  CNeuralNetwork(){};
+  ~CNeuralNetwork();
+  void createCNeuronNetwork(CNeuralNetworkConfiguration* layerSizes);
+
+  void setInputs(double* inputs, bool onlyFirstLayer = false);
+  void setKernels(double* kernels);
+  double* compute();
+  double* getOuput();
+  CNeuronDataSize getOutputSize();
+
+  static CNeuronDataSize getLayerOutputSize(CLayerSize layerConfig);
+  static void loadConfiguration(const char* filePath,
+                                CNeuralNetworkConfiguration* configOutput);
+};
+}  // namespace cmCNN
 
 #endif

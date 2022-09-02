@@ -9,6 +9,8 @@
         "fstream": "cpp",
         "random": "cpp",
         "*.ipp": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "ios": "cpp",
+        "sstream": "cpp"
     }
 }
