@@ -40,48 +40,50 @@ int main(int argc, char** argv) {
   CNeuralNetwork m;
   m.createCNeuronNetwork(&cnnConfig);
 
-  size_t inSize =
-      cnnConfig.inputSize.d * cnnConfig.inputSize.w * cnnConfig.inputSize.h;
-  double* input = new double[inSize];
+  // size_t inSize =
+  //     cnnConfig.inputSize.d * cnnConfig.inputSize.w * cnnConfig.inputSize.h;
+  // double* input = new double[inSize];
 
-  for (size_t i = 0; i < inSize; i += 1) {
-    input[i] = 2.0 / (i + 1);
-  }
+  // for (size_t i = 0; i < inSize; i += 1) {
+  //   input[i] = 2.0 / (i + 1);
+  // }
 
-  m.setInputs(input);
-  m.setKernels(cnnConfig.params);
-  m.compute();
+  // m.setInputs(input);
+  // m.setKernels(cnnConfig.params);
+  // m.compute();
 
   CNeuronDataSize s = m.getOutputSize();
+  printf("Output size: %ld,%ld,%ld ---> %ld params needed.\n", s.d, s.w, s.h,
+         m.getNumOfParamsNeeded());
 
-  size_t i = 0;
-  for (size_t d = 0; d < cnnConfig.inputSize.d; d += 1) {
-    for (size_t h = 0; h < cnnConfig.inputSize.h; h += 1) {
-      printf("\n");
-      for (size_t w = 0; w < cnnConfig.inputSize.w; w += 1) {
-        printf("   %2.3lf", input[i]);
-        i += 1;
-      }
-    }
-  }
+  // size_t i = 0;
+  // for (size_t d = 0; d < cnnConfig.inputSize.d; d += 1) {
+  //   for (size_t h = 0; h < cnnConfig.inputSize.h; h += 1) {
+  //     printf("\n");
+  //     for (size_t w = 0; w < cnnConfig.inputSize.w; w += 1) {
+  //       printf("   %2.3lf", input[i]);
+  //       i += 1;
+  //     }
+  //   }
+  // }
 
-  i = 0;
-  printf("\n");
-  printf("\n");
-  double* nno = m.getOuput();
-  for (size_t d = 0; d < s.d; d += 1) {
-    for (size_t h = 0; h < s.h; h += 1) {
-      printf("\n");
-      for (size_t w = 0; w < s.w; w += 1) {
-        printf("   %2.3lf", nno[i]);
-        i += 1;
-      }
-    }
-  }
+  // i = 0;
+  // printf("\n");
+  // printf("\n");
+  // double* nno = m.getOuput();
+  // for (size_t d = 0; d < s.d; d += 1) {
+  //   for (size_t h = 0; h < s.h; h += 1) {
+  //     printf("\n");
+  //     for (size_t w = 0; w < s.w; w += 1) {
+  //       printf("   %2.3lf", nno[i]);
+  //       i += 1;
+  //     }
+  //   }
+  // }
 
   printf("\n\n");
 
-  delete[] input;
+  // delete[] input;
 
   return 0;
 }

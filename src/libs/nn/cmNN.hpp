@@ -27,7 +27,7 @@ typedef struct {
 
 class Neuron {
  private:
-  char _id[15];
+  size_t _id;
   size_t _nI = 0;
   size_t _nW = 0;
   size_t _nE = 0;
@@ -78,7 +78,7 @@ class Neuron {
 
 class Layer {
  private:
-  char _id[15];
+  size_t _id;
   size_t _n = 0;
   size_t _nE = 0;
   size_t _nI = 0;
@@ -164,7 +164,8 @@ class NeuralNetwork {
   void printNeuralNetwork();
   void saveToFile(const char* path, double* weights = NULL);
   static void loadConfiguration(const char* filePath,
-                                NeuralNetworkConfiguration* configOutput);
+                                NeuralNetworkConfiguration* configOutput,
+                                size_t nInputs = 0);
   static void saveToFile(const char* path,
                          double* weights,
                          NeuralNetworkConfiguration* config);

@@ -1,5 +1,5 @@
-#ifndef __CM_LIBS_CNN__
-#define __CM_LIBS_CNN__
+#ifndef __CM_LIBS_DL_CNN__
+#define __CM_LIBS_DL_CNN__
 
 #include <stdint.h>
 #include <stdio.h>
@@ -33,6 +33,7 @@ typedef struct {
 
 class CNeuron {
  private:
+  size_t _id;
   double* _input = NULL;
   char _activationFXName[50];
 
@@ -56,7 +57,8 @@ class CNeuron {
   CNeuron() {}
   ~CNeuron();
 
-  void createCNeuron(CNeuronDataSize inputSize,
+  void createCNeuron(size_t index,
+                     CNeuronDataSize inputSize,
                      CNeuronDataSize kernelSize,
                      size_t stride = 1,
                      size_t l = 1);
@@ -66,6 +68,9 @@ class CNeuron {
   void setActivationFunction(double (*_activationFunction)(double));
   void init();
 
+  CNeuronDataSize getInputSize();
+  CNeuronDataSize getKernelSize();
+  size_t getId();
   size_t getNumOfParamsNeeded();
   size_t getOutputWidth();
   size_t getOutputHeight();
@@ -85,10 +90,10 @@ class CLayer {
   size_t _dilation = 1;
   size_t _paramsNeeded = 0;
 
-  CNeuron* _cNeuron = NULL;
   double* _input = NULL;
   double* _kernels = NULL;
   double* _output = NULL;
+  CNeuron* _cNeuron = NULL;
 
   size_t _outD;
   size_t _outH;
@@ -107,6 +112,10 @@ class CLayer {
   double* compute();
   double* getOutput();
 
+  CNeuron* getCNeuron(size_t neuronId);
+
+  size_t getId();
+  size_t getNumOfCNeurons();
   size_t getNumOfParamsNeeded();
   size_t getOutputWidth();
   size_t getOutputHeight();
@@ -117,27 +126,35 @@ class CNeuralNetwork {
  private:
   CNeuronDataSize _inSize;
   size_t _nLayers = 0;
-  CLayer* _layer = NULL;
-
   double* _kernels = NULL;
   double* _input = NULL;
+
+  CLayer* _layer = NULL;
 
   void releaseMemory();
 
  public:
   CNeuralNetwork(){};
   ~CNeuralNetwork();
-  void createCNeuronNetwork(CNeuralNetworkConfiguration* layerSizes);
+  void createCNeuronNetwork(CNeuralNetworkConfiguration* cnnConfig);
 
   void setInputs(double* inputs, bool onlyFirstLayer = false);
   void setKernels(double* kernels);
   double* compute();
   double* getOuput();
+  size_t getNumOfParamsNeeded();
   CNeuronDataSize getOutputSize();
+
+  CLayer* getCLayer(size_t layerId);
+  CNeuron* getCNeuron(size_t layerId, size_t neuronId);
 
   static CNeuronDataSize getLayerOutputSize(CLayerSize layerConfig);
   static void loadConfiguration(const char* filePath,
                                 CNeuralNetworkConfiguration* configOutput);
+
+  static void saveToFile(const char* path,
+                         double* params,
+                         CNeuralNetworkConfiguration* config);
 };
 }  // namespace cmCNN
 

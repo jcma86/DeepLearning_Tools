@@ -141,18 +141,21 @@ void CNeuralNetwork::loadConfiguration(
     }
   }
 
-  configOutput->layerConfig[0].kernelSize.d = configOutput->inputSize.d;
-  configOutput->layerConfig[0].inputSize.w = configOutput->inputSize.w;
-  configOutput->layerConfig[0].inputSize.h = configOutput->inputSize.h;
-  configOutput->layerConfig[0].inputSize.d = configOutput->inputSize.d;
   size_t tparams = 0;
-  for (size_t l = 1; l < configOutput->nLayers; l += 1) {
-    CNeuronDataSize s = getLayerOutputSize(configOutput->layerConfig[l - 1]);
+  for (size_t l = 0; l < configOutput->nLayers; l += 1) {
+    if (l == 0) {
+      configOutput->layerConfig[l].kernelSize.d = configOutput->inputSize.d;
+      configOutput->layerConfig[l].inputSize.w = configOutput->inputSize.w;
+      configOutput->layerConfig[l].inputSize.h = configOutput->inputSize.h;
+      configOutput->layerConfig[l].inputSize.d = configOutput->inputSize.d;
+    } else {
+      CNeuronDataSize s = getLayerOutputSize(configOutput->layerConfig[l - 1]);
 
-    configOutput->layerConfig[l].inputSize.w = s.w;
-    configOutput->layerConfig[l].inputSize.h = s.h;
-    configOutput->layerConfig[l].inputSize.d = s.d;
-    configOutput->layerConfig[l].kernelSize.d = s.d;
+      configOutput->layerConfig[l].inputSize.w = s.w;
+      configOutput->layerConfig[l].inputSize.h = s.h;
+      configOutput->layerConfig[l].inputSize.d = s.d;
+      configOutput->layerConfig[l].kernelSize.d = s.d;
+    }
 
     tparams += configOutput->layerConfig[l].n *
                (configOutput->layerConfig[l].kernelSize.w *
@@ -173,14 +176,41 @@ void CNeuralNetwork::loadConfiguration(
   file.close();
 }
 
+void CNeuralNetwork::saveToFile(const char* path,
+                                double* params,
+                                CNeuralNetworkConfiguration* config) {
+  ofstream file(path);
+  file << "++++ ConvolutionalNeuralNetwork ++++\n";
+  file << "INPUT_SIZE:" << config->inputSize.w << "&" << config->inputSize.h
+       << "&" << config->inputSize.d << "\n ";
+  file << "LAYERS:" << config->nLayers << "\n";
+  file << "LAYER_SIZES:";
+  for (size_t l = 0; l < config->nLayers; l += 1)
+    file << config->layerConfig[l].n << ":"
+         << config->layerConfig[l].kernelSize.w << "&"
+         << config->layerConfig[l].kernelSize.h << "&"
+         << config->layerConfig[l].kernelSize.d << "&"
+         << config->layerConfig[l].kernelSize.stride << "&"
+         << config->layerConfig[l].kernelSize.dilation
+         << ((l == config->nLayers - 1) ? "\n" : ",");
+  file << "NUM_PARAMS:" << config->nParams << "\n";
+  file << "PARAMS:\n";
+  for (size_t p = 0; p < config->nParams; p += 1) {
+    char val[50];
+    snprintf(val, 40, "%.15lf\n", params[p]);
+    file << val;
+  }
+
+  file.close();
+}
+
 CNeuron::~CNeuron() {
   releaseMemory();
 }
 
 void CNeuron::releaseMemory() {
-  if (_output) {
+  if (_output)
     delete[] _output;
-  }
 
   _output = NULL;
 }
@@ -189,10 +219,16 @@ bool CNeuron::isReady() {
   return _input && _kernel;
 }
 
-void CNeuron::createCNeuron(CNeuronDataSize inputSize,
+size_t CNeuron::getId() {
+  return _id;
+}
+
+void CNeuron::createCNeuron(size_t index,
+                            CNeuronDataSize inputSize,
                             CNeuronDataSize kernelSize,
                             size_t stride,
                             size_t dilation) {
+  _id = index;
   _inSize.d = inputSize.d;
   _inSize.w = inputSize.w;
   _inSize.h = inputSize.h;
@@ -200,6 +236,9 @@ void CNeuron::createCNeuron(CNeuronDataSize inputSize,
   _kSize.d = kernelSize.d;
   _kSize.w = kernelSize.w;
   _kSize.h = kernelSize.h;
+
+  // if (_inSize.d != _kSize.d)
+  // printf("%ld) %ld --- %ld\n", _id, _inSize.d, _kSize.d);
 
   _stride = stride;
   _dilation = dilation;
@@ -220,22 +259,20 @@ void CNeuron::setActivationFunction(double (*activationFunction)(double)) {
   _activationFunction = activationFunction;
 }
 
-void CNeuron::init() {
-  if (!isReady()) {
-    printf("[ERROR]: You must set firts the input and kernel.\n");
-    return;
-  }
-
-  releaseMemory();
-  _output = new double[getOutputDepth() * getOutputHeight() * getOutputWidth()];
-}
-
 double* CNeuron::getOutput() {
   return _output;
 }
 
 size_t CNeuron::getNumOfParamsNeeded() {
   return (_kSize.d * _kSize.w * _kSize.h);
+}
+
+CNeuronDataSize CNeuron::getInputSize() {
+  return _inSize;
+}
+
+CNeuronDataSize CNeuron::getKernelSize() {
+  return _kSize;
 }
 
 size_t CNeuron::getOutputWidth() {
@@ -255,19 +292,24 @@ size_t CNeuron::getOutputDepth() {
 }
 
 double* CNeuron::compute() {
-  if (!isReady())
-    return NULL;
-
-  if (_inSize.d != _kSize.d) {
-    printf(
-        "[WARNING]: Input and kernel must have same depth (in: %ld, kernel: "
-        "%ld)\n",
-        _inSize.d, _kSize.d);
+  if (!isReady()) {
+    printf("No ready \n");
     return NULL;
   }
 
-  size_t wStart = (_kSize.w / 2) + (_dilation - 1);
-  size_t hStart = (_kSize.h / 2) + (_dilation - 1);
+  if (_inSize.d != _kSize.d) {
+    printf(
+        "[WARNING]: Input and kernel must have same depth (neuron: %ld in: "
+        "%ld, kernel: "
+        "%ld)\n",
+        _id, _inSize.d, _kSize.d);
+    return NULL;
+  }
+
+  size_t wStart = (_kSize.w / 2);
+  wStart += (wStart * (_dilation - 1));
+  size_t hStart = (_kSize.h / 2);
+  hStart += (hStart * (_dilation - 1));
 
   size_t outIndex = 0;
   for (int indexD = 0; indexD < (int)_inSize.d; indexD += _stride) {
@@ -292,7 +334,7 @@ double* CNeuron::compute() {
               size_t kIndex =
                   ((kH * _kSize.w) + kW) + (indexKD * (_kSize.w * _kSize.h));
 
-              _output[outIndex] += _kernel[kIndex] * _input[inIndex];
+              _output[outIndex] += (_kernel[kIndex] * _input[inIndex]);
               lWPad += (_dilation - 1);
             }
             lHPad += (_dilation - 1);
@@ -313,6 +355,7 @@ void CLayer::releaseMemory() {
   if (_output != NULL)
     delete[] _output;
 }
+
 CLayer::~CLayer() {
   releaseMemory();
 }
@@ -325,11 +368,11 @@ void CLayer::createCLayer(size_t layerIndex,
     printf("[WARNING]: Input and Kernel should have same depth.\n");
     return;
   }
+
   releaseMemory();
 
   _id = layerIndex;
   _n = numNeurons;
-  _cNeuron = new CNeuron[numNeurons];
   _inSize.d = inputSize.d;
   _inSize.w = inputSize.w;
   _inSize.h = inputSize.h;
@@ -341,12 +384,13 @@ void CLayer::createCLayer(size_t layerIndex,
   _dilation = kernelSize.dilation;
 
   _paramsNeeded = 0;
+  _cNeuron = new CNeuron[numNeurons];
   for (size_t n = 0; n < numNeurons; n += 1) {
-    _cNeuron[n].createCNeuron(_inSize, _kSize, _stride, _dilation);
+    _cNeuron[n].createCNeuron(n, _inSize, _kSize, _stride, _dilation);
     _paramsNeeded += _cNeuron[n].getNumOfParamsNeeded();
   }
 
-  _outD = numNeurons * _cNeuron[0].getOutputDepth();
+  _outD = _n * _cNeuron[0].getOutputDepth();
   _outW = _cNeuron[0].getOutputWidth();
   _outH = _cNeuron[0].getOutputHeight();
 
@@ -355,6 +399,7 @@ void CLayer::createCLayer(size_t layerIndex,
 
 void CLayer::setInputs(double* input) {
   _input = input;
+  // printf("Input for layer %ld\n", _id);
   for (size_t n = 0; n < _n; n += 1)
     _cNeuron[n].setInput(_input);
 }
@@ -369,11 +414,12 @@ void CLayer::setKernels(double* kernels) {
 }
 
 double* CLayer::compute() {
-  size_t outSize = _outW * _outH;
   size_t index = 0;
 
   for (size_t n = 0; n < _n; n += 1) {
     double* out = _cNeuron[n].compute();
+    size_t outSize =
+        _cNeuron[n].getOutputWidth() * _cNeuron[n].getOutputHeight();
     for (size_t c = 0; c < outSize; c += 1) {
       _output[index] = out[c];
       index += 1;
@@ -389,6 +435,22 @@ double* CLayer::getOutput() {
 
 size_t CLayer::getNumOfParamsNeeded() {
   return _paramsNeeded;
+}
+
+size_t CLayer::getId() {
+  return _id;
+}
+
+size_t CLayer::getNumOfCNeurons() {
+  return _n;
+}
+
+CNeuron* CLayer::getCNeuron(size_t neuronId) {
+  if (neuronId > _n) {
+    printf("[WARNING] Neuron id out of range (%ld neurons).\n", _n);
+    return NULL;
+  }
+  return &_cNeuron[neuronId];
 }
 
 size_t CLayer::getOutputWidth() {
@@ -417,12 +479,12 @@ CNeuralNetwork::~CNeuralNetwork() {
 
 void CNeuralNetwork::createCNeuronNetwork(
     CNeuralNetworkConfiguration* cnnConfig) {
+  releaseMemory();
   _inSize.d = cnnConfig->inputSize.d;
   _inSize.w = cnnConfig->inputSize.w;
   _inSize.h = cnnConfig->inputSize.h;
   _nLayers = cnnConfig->nLayers;
 
-  releaseMemory();
   _layer = new CLayer[_nLayers];
   for (size_t l = 0; l < _nLayers; l += 1) {
     _layer[l].createCLayer(l, cnnConfig->layerConfig[l].n,
@@ -434,9 +496,8 @@ void CNeuralNetwork::createCNeuronNetwork(
 void CNeuralNetwork::setInputs(double* inputs, bool onlyFirstLayer) {
   _layer[0].setInputs(inputs);
   if (!onlyFirstLayer) {
-    for (size_t l = 1; l < _nLayers; l += 1) {
+    for (size_t l = 1; l < _nLayers; l += 1)
       _layer[l].setInputs(_layer[l - 1].getOutput());
-    }
   }
 }
 
@@ -457,8 +518,33 @@ double* CNeuralNetwork::compute() {
   return output;
 }
 
+CLayer* CNeuralNetwork::getCLayer(size_t layerId) {
+  if (layerId > _nLayers) {
+    printf("[WARNING] Layer id out of range (%ld layers).\n", _nLayers);
+    return NULL;
+  }
+
+  return &_layer[layerId];
+}
+
+CNeuron* CNeuralNetwork::getCNeuron(size_t layerId, size_t neuronId) {
+  CLayer* layer = getCLayer(layerId);
+  if (!layer)
+    return NULL;
+
+  return layer->getCNeuron(neuronId);
+}
+
 double* CNeuralNetwork::getOuput() {
   return _layer[_nLayers - 1].getOutput();
+}
+
+size_t CNeuralNetwork::getNumOfParamsNeeded() {
+  size_t nParams = 0;
+  for (size_t l = 0; l < _nLayers; l += 1)
+    nParams += _layer[l].getNumOfParamsNeeded();
+
+  return nParams;
 }
 
 CNeuronDataSize CNeuralNetwork::getOutputSize() {

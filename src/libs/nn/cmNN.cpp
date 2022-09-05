@@ -8,7 +8,7 @@
 using namespace cmNN;
 
 void Neuron::createNeuron(size_t index, size_t nInputs) {
-  sprintf(_id, "n:%ld", index);
+  _id = index;
   _nI = nInputs;
   _nW = nInputs + 3;
 }
@@ -122,7 +122,7 @@ Layer::~Layer() {
 void Layer::createLayer(size_t layerIndex, size_t inSize, size_t numOfNeurons) {
   releaseMemory();
 
-  sprintf(_id, "l:%ld", layerIndex);
+  _id = layerIndex;
   if (numOfNeurons == 0)
     printf("[WARNING]: Layer has 0 neurons.\n");
 
@@ -343,8 +343,9 @@ size_t NeuralNetwork::getWeightsNeeded() {
 }
 
 double* NeuralNetwork::compute(Normalization norm, bool softMax) {
-  for (size_t l = 0; l < _nLayers; l += 1)
+  for (size_t l = 0; l < _nLayers; l += 1) {
     _layer[l].compute(l == _nLayers - 1 ? MIN_MAX : norm, softMax);
+  }
 
   return _output;
 }
@@ -438,9 +439,9 @@ size_t NeuralNetwork::calculateNumberOfWeights(
   return w;
 }
 
-void NeuralNetwork::loadConfiguration(
-    const char* filePath,
-    NeuralNetworkConfiguration* configOutput) {
+void NeuralNetwork::loadConfiguration(const char* filePath,
+                                      NeuralNetworkConfiguration* configOutput,
+                                      size_t nInputs) {
   fstream file;
   file.open(filePath, ios::in);
 
@@ -453,7 +454,7 @@ void NeuralNetwork::loadConfiguration(
 
   configOutput->neuronsPerLayer = NULL;
   configOutput->nExtraInputs = 0;
-  configOutput->nInputs = 0;
+  configOutput->nInputs = nInputs;
   configOutput->minThreshold = 0.9;
   configOutput->nLayers = 0;
   configOutput->nWeights = 0;

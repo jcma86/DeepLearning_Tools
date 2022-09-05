@@ -13,6 +13,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 
+#include "../libs/cnn/cmCNN.hpp"
 #include "../libs/helper/cmHelper.hpp"
 #include "../libs/nn/cmActivationFunction.hpp"
 #include "../libs/nn/cmNN.hpp"
@@ -21,6 +22,7 @@
 using namespace std;
 using namespace cv;
 using namespace cmNN;
+using namespace cmCNN;
 using namespace cmPSO;
 
 namespace po = boost::program_options;
@@ -60,15 +62,22 @@ size_t validFaces = 0;
 size_t invalidFaces = 0;
 
 NeuralNetworkConfiguration nnConfig;
+CNeuralNetworkConfiguration cnnConfig;
 double trainNN(void* psoParams) {
+  CNeuralNetwork cnn;
   NeuralNetwork nn;
+
   psoFitnessFxParams* params = (psoFitnessFxParams*)psoParams;
   double fitness = 0.0;
+
+  cnn.createCNeuronNetwork(&cnnConfig);
+  cnn.setInputs(NULL);
+  cnn.setKernels(&params->position[0]);
 
   nn.createNeuronNetwork(nnConfig.nInputs, nnConfig.nLayers,
                          nnConfig.neuronsPerLayer);
   nn.setWeightsRange(params->min, params->max);
-  nn.setWeights(params->position);
+  nn.setWeights(&params->position[cnn.getNumOfParamsNeeded()]);
   nn.setInputs(NULL);
   nn.setLayerActivationFunction(nnConfig.nLayers - 1, "fxSigmoid");
 
@@ -83,8 +92,9 @@ double trainNN(void* psoParams) {
     size_t totalFaces = examples[e].faces.size();
     for (size_t f = 0; f < totalFaces; f += 1) {
       Face* face = &examples[e].faces[f];
-      nn.setInputs(face->data, true);
-
+      cnn.setInputs(face->data, true);
+      cnn.compute();
+      nn.setInputs(cnn.getOuput(), true);
       nn.compute(Z_SCORE, nnConfig.softMax);
       double* outNN = nn.getOutput();
       size_t outSize = nn.getOutputSize();
@@ -113,11 +123,16 @@ double trainNN(void* psoParams) {
 int main(int argc, char** argv) {
   po::options_description desc("Allowed options");
   string nnconfigpath;
+  string cnnconfigpath;
+
   bool setpso = false;
   bool loadNNConfig = false;
+  bool loadCNNConfig = false;
   desc.add_options()("help", "Lists valid options.")(
       "loadNNConfig", po::value<string>(), "Opens NN configuration from file.")(
-      "setParticlePosition", po::value<size_t>(), "")(
+      "loadCNNConfig", po::value<string>(),
+      "Opens CNN configuration from file.")("setParticlePosition",
+                                            po::value<size_t>(), "")(
       "swarmSize", po::value<int>(), "")("psoMinVel", po::value<double>(), "")(
       "psoMaxVel", po::value<double>(), "")("psoMinPos", po::value<double>(),
                                             "")(
@@ -140,6 +155,10 @@ int main(int argc, char** argv) {
   if (vm.count("loadNNConfig")) {
     nnconfigpath = vm["loadNNConfig"].as<string>();
     loadNNConfig = true;
+  }
+  if (vm.count("loadCNNConfig")) {
+    cnnconfigpath = vm["loadCNNConfig"].as<string>();
+    loadCNNConfig = true;
   }
   if (vm.count("swarmSize")) {
     swarmSize = vm["swarmSize"].as<int>();
@@ -218,18 +237,28 @@ int main(int argc, char** argv) {
       anExample.faces.push_back(aFace);
     }
     examples.push_back(anExample);
-    if (examples.size() > 15)
+    if (examples.size() > 25)
       break;
   }
   printf("Valid faces  : %ld\n", validFaces);
   printf("Invalid faces: %ld\n", invalidFaces);
 
-  NeuralNetwork::loadConfiguration(nnconfigpath.c_str(), &nnConfig);
-  printf("Weights needed: %ld\n", nnConfig.nWeights);
+  CNeuralNetwork::loadConfiguration(cnnconfigpath.c_str(), &cnnConfig);
+  CNeuralNetwork cnntmp;
+  cnntmp.createCNeuronNetwork(&cnnConfig);
+  CNeuronDataSize cnnOutSize = cnntmp.getOutputSize();
+
+  NeuralNetwork::loadConfiguration(nnconfigpath.c_str(), &nnConfig,
+                                   cnnOutSize.d * cnnOutSize.w * cnnOutSize.h);
+
+  cnnConfig.nParams = cnntmp.getNumOfParamsNeeded();
+  printf("CNN Params needed: %ld\n", cnntmp.getNumOfParamsNeeded());
+  printf("NN Weights needed: %ld\n", nnConfig.nWeights);
   printf("SoftMax: %s\n", nnConfig.softMax ? "TRUE" : "FALSE");
 
   /* PSO CREATION - START */
-  size_t swarmDim = pso.createSwarm(swarmSize, nnConfig.nWeights);
+  size_t particleDim = cnntmp.getNumOfParamsNeeded() + nnConfig.nWeights;
+  size_t swarmDim = pso.createSwarm(swarmSize, particleDim);
   double* position = new double[swarmDim];
   double* velocity = new double[swarmDim];
 
@@ -258,9 +287,13 @@ int main(int argc, char** argv) {
       lastBest = pso.getBestFitness();
       stringstream stream;
       stream << fixed << setprecision(5) << lastBest;
-      string path = "bests/" + stream.str() + ".txt";
+      string nnpath = "bests/nn_" + stream.str() + ".txt";
+      string cnnpath = "bests/cnn_" + stream.str() + ".txt";
 
-      NeuralNetwork::saveToFile(path.c_str(), pso.getBestPosition(), &nnConfig);
+      double* pos = pso.getBestPosition();
+      CNeuralNetwork::saveToFile(cnnpath.c_str(), pos, &cnnConfig);
+      NeuralNetwork::saveToFile(nnpath.c_str(),
+                                &pos[cnntmp.getNumOfParamsNeeded()], &nnConfig);
       shakeCountdown = 20;
     } else
       shakeCountdown -= 1;
@@ -274,11 +307,11 @@ int main(int argc, char** argv) {
     // char key = (char)waitKey(1);
     // if (key == 27)
     //     break;
+    exit(0);
   }
 
   delete[] nnConfig.neuronsPerLayer;
   delete[] nnConfig.weights;
-  // delete[] nnInput;
   delete[] position;
   delete[] velocity;
 

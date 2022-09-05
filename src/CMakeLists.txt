@@ -66,3 +66,8 @@ target_link_libraries(${PROJECT_FRAMEGEN} m ${OpenCV_LIBS} cmHelper cmActivation
 set(PROJECT_FACERECOG FaceRecognition)
 add_executable(${PROJECT_FACERECOG} projects/FaceRecognition.cpp)
 target_link_libraries(${PROJECT_FACERECOG} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmPSO Boost::program_options)
+
+set(PROJECT_FACERECOG_CNN FaceRecognitionCNN)
+add_executable(${PROJECT_FACERECOG_CNN} projects/FaceRecognitionCNN.cpp)
+target_link_libraries(${PROJECT_FACERECOG_CNN} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmCNN cmPSO Boost::program_options)
+
