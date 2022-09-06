@@ -64,16 +64,15 @@ size_t invalidFaces = 0;
 NeuralNetworkConfiguration nnConfig;
 CNeuralNetworkConfiguration cnnConfig;
 double trainNN(void* psoParams) {
-  CNeuralNetwork cnn;
-  NeuralNetwork nn;
-
   psoFitnessFxParams* params = (psoFitnessFxParams*)psoParams;
   double fitness = 0.0;
 
+  CNeuralNetwork cnn;
   cnn.createCNeuronNetwork(&cnnConfig);
   cnn.setInputs(NULL);
   cnn.setKernels(&params->position[0]);
 
+  NeuralNetwork nn;
   nn.createNeuronNetwork(nnConfig.nInputs, nnConfig.nLayers,
                          nnConfig.neuronsPerLayer);
   nn.setWeightsRange(params->min, params->max);
@@ -237,8 +236,8 @@ int main(int argc, char** argv) {
       anExample.faces.push_back(aFace);
     }
     examples.push_back(anExample);
-    if (examples.size() > 25)
-      break;
+    // if (examples.size() > 25)
+    //   break;
   }
   printf("Valid faces  : %ld\n", validFaces);
   printf("Invalid faces: %ld\n", invalidFaces);

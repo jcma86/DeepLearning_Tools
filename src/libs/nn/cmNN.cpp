@@ -284,8 +284,6 @@ void NeuralNetwork::createNeuronNetwork(size_t inSize,
 void NeuralNetwork::setInputs(double* inputs, bool onlyFirstLayer) {
   _inputs = inputs;
 
-  size_t firstIn = 0;
-
   _layer[0].setInputs(_inputs);
   if (!onlyFirstLayer) {
     for (size_t l = 1; l < _nLayers; l += 1)
@@ -343,9 +341,8 @@ size_t NeuralNetwork::getWeightsNeeded() {
 }
 
 double* NeuralNetwork::compute(Normalization norm, bool softMax) {
-  for (size_t l = 0; l < _nLayers; l += 1) {
+  for (size_t l = 0; l < _nLayers; l += 1)
     _layer[l].compute(l == _nLayers - 1 ? MIN_MAX : norm, softMax);
-  }
 
   return _output;
 }

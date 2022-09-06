@@ -312,38 +312,45 @@ double* CNeuron::compute() {
   hStart += (hStart * (_dilation - 1));
 
   size_t outIndex = 0;
-  for (int indexD = 0; indexD < (int)_inSize.d; indexD += _stride) {
-    for (int indexH = hStart; indexH < (int)(_inSize.h - hStart);
-         indexH += _stride) {
-      for (int indexW = wStart; indexW < (int)(_inSize.w - wStart);
-           indexW += _stride) {
-        _output[outIndex] = 0.0;
-        for (int indexKD = 0; indexKD < (int)(_kSize.d); indexKD += _stride) {
-          int lHPad = 0;
-          for (int indexKH = -(int)hStart; indexKH < (int)(_kSize.h - hStart);
-               indexKH += _stride) {
-            int lWPad = 0;
-            for (int indexKW = -(int)wStart; indexKW < (int)(_kSize.w - wStart);
-                 indexKW += _stride) {
-              size_t inW = indexW + indexKW + lWPad;
-              size_t inH = indexH + indexKH + lHPad;
-              size_t kW = indexKW + wStart;
-              size_t kH = indexKH + hStart;
-              size_t inIndex = ((inH * _inSize.w) + inW) +
-                               (indexD * (_inSize.w * _inSize.h));
-              size_t kIndex =
-                  ((kH * _kSize.w) + kW) + (indexKD * (_kSize.w * _kSize.h));
+  for (int indexH = hStart; indexH < (int)(_inSize.h - hStart);
+       indexH += _stride) {
+    for (int indexW = wStart; indexW < (int)(_inSize.w - wStart);
+         indexW += _stride) {
+      // printf(
+      //     "Index:%ld/%ld --> i:%ld,%ld,%ld * k:%ld,%ld,%ld ->
+      //     o:%ld,%ld,%ld\n", outIndex, getOutputDepth() * getOutputWidth() *
+      //     getOutputHeight(), _inSize.d, _inSize.w, _inSize.h, _kSize.d,
+      //     _kSize.w, _kSize.h, getOutputDepth(), getOutputWidth(),
+      //     getOutputHeight());
+      _output[outIndex] = 0.0;
+      for (int indexKD = 0; indexKD < (int)(_kSize.d); indexKD += _stride) {
+        int lHPad = 0;
+        for (int indexKH = -(int)hStart; indexKH < (int)(_kSize.h - hStart);
+             indexKH += _stride) {
+          int lWPad = 0;
+          for (int indexKW = -(int)wStart; indexKW < (int)(_kSize.w - wStart);
+               indexKW += _stride) {
+            size_t inW = indexW + indexKW + lWPad;
+            size_t inH = indexH + indexKH + lHPad;
+            size_t kW = indexKW + wStart;
+            size_t kH = indexKH + hStart;
+            size_t inIndex =
+                ((inH * _inSize.w) + inW) + (indexKW * (_inSize.w * _inSize.h));
+            size_t kIndex =
+                ((kH * _kSize.w) + kW) + (indexKD * (_kSize.w * _kSize.h));
 
-              _output[outIndex] += (_kernel[kIndex] * _input[inIndex]);
-              lWPad += (_dilation - 1);
-            }
-            lHPad += (_dilation - 1);
+            _output[outIndex] += (_kernel[kIndex] * _input[inIndex]);
+            lWPad += (_dilation - 1);
           }
+          lHPad += (_dilation - 1);
         }
-        outIndex += 1;
       }
+      outIndex += 1;
     }
   }
+
+  // printf("Out:%ld/%ld\n", outIndex,
+  //        getOutputDepth() * getOutputWidth() * getOutputHeight());
 
   return _output;
 }
