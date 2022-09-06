@@ -80,6 +80,8 @@ double trainNN(void* psoParams) {
   nn.setInputs(NULL);
   nn.setLayerActivationFunction(nnConfig.nLayers - 1, "fxSigmoid");
 
+  // printf("p:%ld - A\n", params->particleID);
+
   size_t correctValid = 0;
   size_t incorrectValid = 0;
 
@@ -91,10 +93,15 @@ double trainNN(void* psoParams) {
     size_t totalFaces = examples[e].faces.size();
     for (size_t f = 0; f < totalFaces; f += 1) {
       Face* face = &examples[e].faces[f];
+      // printf("p:%ld - B\n", params->particleID);
       cnn.setInputs(face->data, true);
+      // printf("p:%ld - C\n", params->particleID);
       cnn.compute();
+      // printf("p:%ld - D\n", params->particleID);
       nn.setInputs(cnn.getOuput(), true);
+      // printf("p:%ld - E\n", params->particleID);
       nn.compute(Z_SCORE, nnConfig.softMax);
+      // printf("p:%ld - F\n", params->particleID);
       double* outNN = nn.getOutput();
       size_t outSize = nn.getOutputSize();
 
@@ -306,7 +313,6 @@ int main(int argc, char** argv) {
     // char key = (char)waitKey(1);
     // if (key == 27)
     //     break;
-    exit(0);
   }
 
   delete[] nnConfig.neuronsPerLayer;

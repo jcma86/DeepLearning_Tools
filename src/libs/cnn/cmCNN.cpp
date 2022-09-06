@@ -182,14 +182,13 @@ void CNeuralNetwork::saveToFile(const char* path,
   ofstream file(path);
   file << "++++ ConvolutionalNeuralNetwork ++++\n";
   file << "INPUT_SIZE:" << config->inputSize.w << "&" << config->inputSize.h
-       << "&" << config->inputSize.d << "\n ";
+       << "&" << config->inputSize.d << "\n";
   file << "LAYERS:" << config->nLayers << "\n";
   file << "LAYER_SIZES:";
   for (size_t l = 0; l < config->nLayers; l += 1)
     file << config->layerConfig[l].n << ":"
          << config->layerConfig[l].kernelSize.w << "&"
          << config->layerConfig[l].kernelSize.h << "&"
-         << config->layerConfig[l].kernelSize.d << "&"
          << config->layerConfig[l].kernelSize.stride << "&"
          << config->layerConfig[l].kernelSize.dilation
          << ((l == config->nLayers - 1) ? "\n" : ",");
@@ -401,7 +400,7 @@ void CLayer::createCLayer(size_t layerIndex,
   _outW = _cNeuron[0].getOutputWidth();
   _outH = _cNeuron[0].getOutputHeight();
 
-  _output = new double[_outD * _outH * _outW * _n];
+  _output = new double[_outD * _outH * _outW];
 }
 
 void CLayer::setInputs(double* input) {
@@ -519,8 +518,9 @@ void CNeuralNetwork::setKernels(double* kernels) {
 
 double* CNeuralNetwork::compute() {
   double* output;
-  for (size_t l = 0; l < _nLayers; l += 1)
+  for (size_t l = 0; l < _nLayers; l += 1) {
     output = _layer[l].compute();
+  }
 
   return output;
 }
