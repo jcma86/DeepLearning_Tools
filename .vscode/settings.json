@@ -11,6 +11,18 @@
         "*.ipp": "cpp",
         "iomanip": "cpp",
         "ios": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "vector": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "deque": "cpp",
+        "initializer_list": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "stack": "cpp",
+        "string_view": "cpp"
     }
 }

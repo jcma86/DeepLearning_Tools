@@ -236,9 +236,6 @@ void CNeuron::createCNeuron(size_t index,
   _kSize.w = kernelSize.w;
   _kSize.h = kernelSize.h;
 
-  // if (_inSize.d != _kSize.d)
-  // printf("%ld) %ld --- %ld\n", _id, _inSize.d, _kSize.d);
-
   _stride = stride;
   _dilation = dilation;
 
@@ -311,16 +308,10 @@ double* CNeuron::compute() {
   hStart += (hStart * (_dilation - 1));
 
   size_t outIndex = 0;
-  for (int indexH = hStart; indexH < (int)(_inSize.h - hStart);
+  for (int indexH = (int)hStart; indexH < (int)(_inSize.h - hStart);
        indexH += _stride) {
-    for (int indexW = wStart; indexW < (int)(_inSize.w - wStart);
+    for (int indexW = (int)wStart; indexW < (int)(_inSize.w - wStart);
          indexW += _stride) {
-      // printf(
-      //     "Index:%ld/%ld --> i:%ld,%ld,%ld * k:%ld,%ld,%ld ->
-      //     o:%ld,%ld,%ld\n", outIndex, getOutputDepth() * getOutputWidth() *
-      //     getOutputHeight(), _inSize.d, _inSize.w, _inSize.h, _kSize.d,
-      //     _kSize.w, _kSize.h, getOutputDepth(), getOutputWidth(),
-      //     getOutputHeight());
       _output[outIndex] = 0.0;
       for (int indexKD = 0; indexKD < (int)(_kSize.d); indexKD += _stride) {
         int lHPad = 0;
@@ -334,10 +325,9 @@ double* CNeuron::compute() {
             size_t kW = indexKW + wStart;
             size_t kH = indexKH + hStart;
             size_t inIndex =
-                ((inH * _inSize.w) + inW) + (indexKW * (_inSize.w * _inSize.h));
+                ((inH * _inSize.w) + inW) + (indexKD * (_inSize.w * _inSize.h));
             size_t kIndex =
                 ((kH * _kSize.w) + kW) + (indexKD * (_kSize.w * _kSize.h));
-
             _output[outIndex] += (_kernel[kIndex] * _input[inIndex]);
             lWPad += (_dilation - 1);
           }
@@ -347,9 +337,6 @@ double* CNeuron::compute() {
       outIndex += 1;
     }
   }
-
-  // printf("Out:%ld/%ld\n", outIndex,
-  //        getOutputDepth() * getOutputWidth() * getOutputHeight());
 
   return _output;
 }
@@ -396,16 +383,16 @@ void CLayer::createCLayer(size_t layerIndex,
     _paramsNeeded += _cNeuron[n].getNumOfParamsNeeded();
   }
 
-  _outD = _n * _cNeuron[0].getOutputDepth();
+  _outD = _cNeuron[0].getOutputDepth();
   _outW = _cNeuron[0].getOutputWidth();
   _outH = _cNeuron[0].getOutputHeight();
 
-  _output = new double[_outD * _outH * _outW];
+  _output = new double[(_outD * _outH * _outW * _n)];
 }
 
 void CLayer::setInputs(double* input) {
   _input = input;
-  // printf("Input for layer %ld\n", _id);
+
   for (size_t n = 0; n < _n; n += 1)
     _cNeuron[n].setInput(_input);
 }
@@ -420,16 +407,12 @@ void CLayer::setKernels(double* kernels) {
 }
 
 double* CLayer::compute() {
-  size_t index = 0;
-
   for (size_t n = 0; n < _n; n += 1) {
     double* out = _cNeuron[n].compute();
     size_t outSize =
         _cNeuron[n].getOutputWidth() * _cNeuron[n].getOutputHeight();
-    for (size_t c = 0; c < outSize; c += 1) {
-      _output[index] = out[c];
-      index += 1;
-    }
+    for (size_t c = 0; c < outSize; c += 1)
+      _output[(n * outSize) + c] = out[c];
   }
 
   return _output;
@@ -468,7 +451,7 @@ size_t CLayer::getOutputHeight() {
 }
 
 size_t CLayer::getOutputDepth() {
-  return _outD;
+  return _outD * _n;
 }
 
 // CNeuralNetwork
@@ -517,12 +500,10 @@ void CNeuralNetwork::setKernels(double* kernels) {
 }
 
 double* CNeuralNetwork::compute() {
-  double* output;
-  for (size_t l = 0; l < _nLayers; l += 1) {
-    output = _layer[l].compute();
-  }
+  for (size_t l = 0; l < _nLayers; l += 1)
+    _layer[l].compute();
 
-  return output;
+  return _layer[_nLayers - 1].getOutput();
 }
 
 CLayer* CNeuralNetwork::getCLayer(size_t layerId) {

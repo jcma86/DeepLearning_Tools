@@ -45,7 +45,7 @@ typedef struct {
   unsigned int pose;
   unsigned int invalid;
 
-  double data[900];
+  double* data;
 } Face;
 
 typedef struct {
@@ -80,8 +80,6 @@ double trainNN(void* psoParams) {
   nn.setInputs(NULL);
   nn.setLayerActivationFunction(nnConfig.nLayers - 1, "fxSigmoid");
 
-  // printf("p:%ld - A\n", params->particleID);
-
   size_t correctValid = 0;
   size_t incorrectValid = 0;
 
@@ -91,17 +89,13 @@ double trainNN(void* psoParams) {
   size_t totalExamples = examples.size();
   for (size_t e = 0; e < totalExamples; e += 1) {
     size_t totalFaces = examples[e].faces.size();
+
     for (size_t f = 0; f < totalFaces; f += 1) {
       Face* face = &examples[e].faces[f];
-      // printf("p:%ld - B\n", params->particleID);
       cnn.setInputs(face->data, true);
-      // printf("p:%ld - C\n", params->particleID);
       cnn.compute();
-      // printf("p:%ld - D\n", params->particleID);
-      nn.setInputs(cnn.getOuput(), true);
-      // printf("p:%ld - E\n", params->particleID);
+      nn.setInputs(cnn.getOuput());
       nn.compute(Z_SCORE, nnConfig.softMax);
-      // printf("p:%ld - F\n", params->particleID);
       double* outNN = nn.getOutput();
       size_t outSize = nn.getOutputSize();
 
@@ -122,6 +116,10 @@ double trainNN(void* psoParams) {
   double d = (double)incorrectInvalid / (double)invalidFaces;
 
   fitness = ((0.5 * a) + (0.5 * b) - (0.5 * c) - (0.5 * d)) * 100.0;
+
+  printf("  Particle %2ld: %.15lf (valid: %ld/%ld ... invalid:%ld/%ld)\n",
+         params->particleID, fitness, correctValid, incorrectValid,
+         correctInvalid, incorrectInvalid);
 
   return fitness;
 }
@@ -189,6 +187,14 @@ int main(int argc, char** argv) {
     psoThreads = vm["psoThreads"].as<int>();
   }
 
+  CNeuralNetwork::loadConfiguration(cnnconfigpath.c_str(), &cnnConfig);
+  CNeuralNetwork cnntmp;
+  cnntmp.createCNeuronNetwork(&cnnConfig);
+  CNeuronDataSize cnnOutSize = cnntmp.getOutputSize();
+
+  NeuralNetwork::loadConfiguration(nnconfigpath.c_str(), &nnConfig,
+                                   cnnOutSize.d * cnnOutSize.w * cnnOutSize.h);
+
   fstream file;
   file.open(
       "/Users/jose/Downloads/WIDER_DATASET/wider_face_split/"
@@ -200,6 +206,7 @@ int main(int argc, char** argv) {
 
   string line;
   size_t count = 0;
+  printf("Loading face examples.\n");
   while (getline(file, line)) {
     ExampleInfo anExample;
     anExample.path.assign(line);
@@ -233,29 +240,24 @@ int main(int argc, char** argv) {
 
       Rect crop(aFace.x1, aFace.y1, aFace.width, aFace.height);
       Mat faceImg = img(crop);
-      resize(faceImg, faceImg, Size(30, 30));
+      resize(faceImg, faceImg,
+             Size(cnnConfig.inputSize.w, cnnConfig.inputSize.h));
 
       ptr = (uint8_t*)faceImg.data;
 
-      for (size_t i = 0; i < 900; i += 1)
+      aFace.data = new double[cnnConfig.inputSize.w * cnnConfig.inputSize.h];
+      for (size_t i = 0; i < (cnnConfig.inputSize.w * cnnConfig.inputSize.h);
+           i += 1)
         aFace.data[i] = (double)ptr[i] / 255.0;
 
       anExample.faces.push_back(aFace);
     }
     examples.push_back(anExample);
-    // if (examples.size() > 25)
+    // if (examples.size() > 15)
     //   break;
   }
   printf("Valid faces  : %ld\n", validFaces);
   printf("Invalid faces: %ld\n", invalidFaces);
-
-  CNeuralNetwork::loadConfiguration(cnnconfigpath.c_str(), &cnnConfig);
-  CNeuralNetwork cnntmp;
-  cnntmp.createCNeuronNetwork(&cnnConfig);
-  CNeuronDataSize cnnOutSize = cnntmp.getOutputSize();
-
-  NeuralNetwork::loadConfiguration(nnconfigpath.c_str(), &nnConfig,
-                                   cnnOutSize.d * cnnOutSize.w * cnnOutSize.h);
 
   cnnConfig.nParams = cnntmp.getNumOfParamsNeeded();
   printf("CNN Params needed: %ld\n", cnntmp.getNumOfParamsNeeded());
@@ -278,13 +280,20 @@ int main(int argc, char** argv) {
   pso.initVelocity(velocity, minVel, maxVel);
   pso.initWeights(0.729, 1.4944, 1.4944);
   if (setpso) {
-    printf("Setting particle position from NN file.\n");
-    pso.setParticlePosition(particleToSet, nnConfig.weights);
+    printf("Setting particle position.\n");
+    double* tmpPos = new double[particleDim];
+    for (size_t p = 0; p < cnnConfig.nParams; p += 1)
+      tmpPos[p] = cnnConfig.params[p];
+    for (size_t p = 0; p < nnConfig.nWeights; p += 1)
+      tmpPos[cnnConfig.nParams + p] = nnConfig.weights[p];
+
+    pso.setParticlePosition(particleToSet, tmpPos);
+    delete[] tmpPos;
   }
   pso.setPrecision(15);
   /* PSO CREATION - END */
 
-  int shakeCountdown = 20;
+  // int shakeCountdown = 20;
   for (int g = 0; g < 1000; g += 1) {
     pso.compute(psoThreads);
     printf("\r%4d - Best fitness: %.15lf (p: %ld)\n", g, pso.getBestFitness(),
@@ -300,15 +309,16 @@ int main(int argc, char** argv) {
       CNeuralNetwork::saveToFile(cnnpath.c_str(), pos, &cnnConfig);
       NeuralNetwork::saveToFile(nnpath.c_str(),
                                 &pos[cnntmp.getNumOfParamsNeeded()], &nnConfig);
-      shakeCountdown = 20;
-    } else
-      shakeCountdown -= 1;
+      // shakeCountdown = 20;
+    }
+    // else
+    // shakeCountdown -= 1;
 
-    if (shakeCountdown == 0) {
-      pso.shakeSwarm();
-      shakeCountdown = 20;
-    } else
-      pso.evolve();
+    // if (shakeCountdown == 0) {
+    //   pso.shakeSwarm();
+    //   shakeCountdown = 20;
+    // } else
+    pso.evolve();
 
     // char key = (char)waitKey(1);
     // if (key == 27)
@@ -319,6 +329,8 @@ int main(int argc, char** argv) {
   delete[] nnConfig.weights;
   delete[] position;
   delete[] velocity;
+  delete[] cnnConfig.params;
+  delete[] cnnConfig.layerConfig;
 
   return 0;
 }

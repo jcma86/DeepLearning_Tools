@@ -128,6 +128,7 @@ class CNeuralNetwork {
   size_t _nLayers = 0;
   double* _kernels = NULL;
   double* _input = NULL;
+  // double* _output = NULL;
 
   CLayer* _layer = NULL;
 

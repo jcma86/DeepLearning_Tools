@@ -370,8 +370,7 @@ void Swarm::compute(size_t maxThreads) {
       }
     }
 
-    printf("\rEvaluating %ld of %ld particles.", thrCreated, _population);
-    fflush(stdout);
+    printf("Evaluating %ld of %ld particles.\n", thrCreated, _population);
 
     for (size_t i = 0; i < created; i += 1)
       int rc = pthread_join(threads[i], NULL);

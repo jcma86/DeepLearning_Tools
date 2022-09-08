@@ -341,6 +341,7 @@ size_t NeuralNetwork::getWeightsNeeded() {
 }
 
 double* NeuralNetwork::compute(Normalization norm, bool softMax) {
+  // printf("Inp:%p\n", _inputs);
   for (size_t l = 0; l < _nLayers; l += 1)
     _layer[l].compute(l == _nLayers - 1 ? MIN_MAX : norm, softMax);
 
