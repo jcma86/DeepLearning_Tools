@@ -112,10 +112,11 @@ double trainNN(void* psoParams) {
   double a = (double)correctValid / (double)validFaces;
   double b = (double)correctInvalid / (double)invalidFaces;
 
-  double c = (double)incorrectValid / (double)validFaces;
-  double d = (double)incorrectInvalid / (double)invalidFaces;
+  // double c = (double)incorrectValid / (double)validFaces;
+  // double d = (double)incorrectInvalid / (double)invalidFaces;
 
-  fitness = ((0.5 * a) + (0.5 * b) - (0.5 * c) - (0.5 * d)) * 100.0;
+  // fitness = ((0.5 * a) + (0.5 * b) - (0.5 * c) - (0.5 * d)) * 100.0;
+  fitness = ((0.4 * a) + (0.6 * b)) * 100.0;
 
   printf("  Particle %2ld: %.15lf (valid: %ld/%ld ... invalid:%ld/%ld)\n",
          params->particleID, fitness, correctValid, incorrectValid,
@@ -190,10 +191,27 @@ int main(int argc, char** argv) {
   CNeuralNetwork::loadConfiguration(cnnconfigpath.c_str(), &cnnConfig);
   CNeuralNetwork cnntmp;
   cnntmp.createCNeuronNetwork(&cnnConfig);
+  for (size_t l = 0; l < cnnConfig.nLayers; l += 1) {
+    CNeuronDataSize os = cnntmp.getLayerOutputSize(cnnConfig.layerConfig[l]);
+    printf("l:%ld --> i:%ldx%ldx%ld * k:%ldx%ldx%ld(%ld,%ld) = o:%ldx%ldx%ld\n",
+           l, cnnConfig.layerConfig[l].inputSize.d,
+           cnnConfig.layerConfig[l].inputSize.w,
+           cnnConfig.layerConfig[l].inputSize.h,
+           cnnConfig.layerConfig[l].kernelSize.d,
+           cnnConfig.layerConfig[l].kernelSize.w,
+           cnnConfig.layerConfig[l].kernelSize.h,
+           cnnConfig.layerConfig[l].kernelSize.stride,
+           cnnConfig.layerConfig[l].kernelSize.dilation, os.d, os.w, os.h);
+  }
   CNeuronDataSize cnnOutSize = cnntmp.getOutputSize();
 
   NeuralNetwork::loadConfiguration(nnconfigpath.c_str(), &nnConfig,
                                    cnnOutSize.d * cnnOutSize.w * cnnOutSize.h);
+
+  cnnConfig.nParams = cnntmp.getNumOfParamsNeeded();
+  printf("CNN Params needed: %ld\n", cnntmp.getNumOfParamsNeeded());
+  printf("NN Weights needed: %ld\n", nnConfig.nWeights);
+  printf("SoftMax: %s\n", nnConfig.softMax ? "TRUE" : "FALSE");
 
   fstream file;
   file.open(
@@ -253,16 +271,11 @@ int main(int argc, char** argv) {
       anExample.faces.push_back(aFace);
     }
     examples.push_back(anExample);
-    // if (examples.size() > 15)
+    // if (examples.size() > 35)
     //   break;
   }
   printf("Valid faces  : %ld\n", validFaces);
   printf("Invalid faces: %ld\n", invalidFaces);
-
-  cnnConfig.nParams = cnntmp.getNumOfParamsNeeded();
-  printf("CNN Params needed: %ld\n", cnntmp.getNumOfParamsNeeded());
-  printf("NN Weights needed: %ld\n", nnConfig.nWeights);
-  printf("SoftMax: %s\n", nnConfig.softMax ? "TRUE" : "FALSE");
 
   /* PSO CREATION - START */
   size_t particleDim = cnntmp.getNumOfParamsNeeded() + nnConfig.nWeights;

@@ -61,13 +61,17 @@ target_link_libraries(${TEST_SocketClient} m websocketpp::websocketpp)
 
 set(PROJECT_FRAMEGEN FrameGenerator)
 add_executable(${PROJECT_FRAMEGEN} projects/FrameGenerator.cpp)
-target_link_libraries(${PROJECT_FRAMEGEN} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmPSO)
+target_link_libraries(${PROJECT_FRAMEGEN} m ${OpenCV_LIBS} cmHelper cmNN cmActivationFunction cmPSO)
 
 set(PROJECT_FACERECOG FaceRecognition)
 add_executable(${PROJECT_FACERECOG} projects/FaceRecognition.cpp)
-target_link_libraries(${PROJECT_FACERECOG} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmPSO Boost::program_options)
+target_link_libraries(${PROJECT_FACERECOG} m ${OpenCV_LIBS} cmHelper cmNN cmActivationFunction cmPSO Boost::program_options)
 
 set(PROJECT_FACERECOG_CNN FaceRecognitionCNN)
 add_executable(${PROJECT_FACERECOG_CNN} projects/FaceRecognitionCNN.cpp)
-target_link_libraries(${PROJECT_FACERECOG_CNN} m ${OpenCV_LIBS} cmHelper cmActivationFunction cmNN cmCNN cmPSO Boost::program_options)
+target_link_libraries(${PROJECT_FACERECOG_CNN} m ${OpenCV_LIBS} cmHelper cmNN cmCNN cmActivationFunction cmPSO Boost::program_options)
+
+set(PROJECT_FACERECOG_CNN_TEST FaceRecognitionCNNTest)
+add_executable(${PROJECT_FACERECOG_CNN_TEST} projects/FaceRecognitionCNNTest.cpp)
+target_link_libraries(${PROJECT_FACERECOG_CNN_TEST} m ${OpenCV_LIBS} cmHelper cmNN cmCNN cmActivationFunction Boost::program_options)
 
