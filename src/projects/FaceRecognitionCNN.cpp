@@ -141,13 +141,19 @@ int main(int argc, char** argv) {
       "swarmSize", po::value<int>(), "")("psoMinVel", po::value<double>(), "")(
       "psoMaxVel", po::value<double>(), "")("psoMinPos", po::value<double>(),
                                             "")(
-      "psoMaxPos", po::value<double>(), "")("psoThreads", po::value<int>(), "");
+      "psoMaxPos", po::value<double>(), "")("psoThreads", po::value<int>(), "")
+      ("psoInertiaWeight", po::value<double>(), "")
+      ("psoCognitiveWeight", po::value<double>(), "")
+      ("psoSocialWeight", po::value<double>(), "");
 
   double minPos = -10.0;
   double maxPos = -10.0;
   double minVel = -0.5;
   double maxVel = -0.5;
   int psoThreads = 15;
+  double psoInertiaWeight = 0.729;
+  double psoCognitiveWeight = 2.1944;
+  double psoSocialWeight = 2.1944;
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);
@@ -187,6 +193,15 @@ int main(int argc, char** argv) {
   if (vm.count("psoThreads")) {
     psoThreads = vm["psoThreads"].as<int>();
   }
+  if (vm.count("psoSocialWeight")) {
+    psoSocialWeight = vm["psoSocialWeight"].as<double>();
+  }
+  if (vm.count("psoCognitiveWeight")) {
+    psoCognitiveWeight = vm["psoCognitiveWeight"].as<int>();
+  }
+  if (vm.count("psoInertiaWeight")) {
+    psoInertiaWeight = vm["psoInertiaWeight"].as<int>();
+  }
 
   CNeuralNetwork::loadConfiguration(cnnconfigpath.c_str(), &cnnConfig);
   CNeuralNetwork cnntmp;
@@ -215,7 +230,7 @@ int main(int argc, char** argv) {
 
   fstream file;
   file.open(
-      "/Users/jose/Downloads/WIDER_DATASET/wider_face_split/"
+      "/Users/ekaterina/Downloads/WIDER_DATASET/wider_face_split/"
       "wider_face_train_bbx_gt.txt",
       ios::in);
 
@@ -253,7 +268,7 @@ int main(int argc, char** argv) {
         invalidFaces += 1;
 
       Mat img = imread(
-          "/Users/jose/Downloads/WIDER_DATASET/training/" + anExample.path, 0);
+          "/Users/ekaterina/Downloads/WIDER_DATASET/training/" + anExample.path, 0);
       uint8_t* ptr;
 
       Rect crop(aFace.x1, aFace.y1, aFace.width, aFace.height);
@@ -291,7 +306,7 @@ int main(int argc, char** argv) {
   pso.setFitnessFunction(trainNN);
   pso.initPosition(position, nnConfig.minW, nnConfig.maxW);
   pso.initVelocity(velocity, minVel, maxVel);
-  pso.initWeights(0.729, 1.4944, 1.4944);
+  pso.initWeights(psoInertiaWeight, psoCognitiveWeight, psoSocialWeight);
   if (setpso) {
     printf("Setting particle position.\n");
     double* tmpPos = new double[particleDim];
